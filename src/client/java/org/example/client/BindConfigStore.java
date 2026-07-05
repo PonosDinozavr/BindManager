@@ -16,6 +16,7 @@ public class BindConfigStore {
 
     private final Path profilesPath;
     private final Map<String, BindConfig> profiles = new LinkedHashMap<>();
+    private String activeProfileName;
 
     public BindConfigStore(MinecraftClient client) {
         this.profilesPath = client.runDirectory.toPath().resolve("config").resolve(PROFILES_DIR);
@@ -144,6 +145,18 @@ public class BindConfigStore {
         }
     }
 
+    public String getActiveProfileName() {
+        return activeProfileName;
+    }
+
+    public BindConfig getActiveProfile() {
+        return activeProfileName != null ? profiles.get(activeProfileName) : null;
+    }
+
+    public void setActiveProfile(String name) {
+        this.activeProfileName = name;
+    }
+
     public void loadProfile(String name) {
         BindConfig config = profiles.get(name);
         if (config == null) return;
@@ -160,6 +173,7 @@ public class BindConfigStore {
             }
         }
         options.write();
+        activeProfileName = name;
     }
 
     public List<BindConfig> getProfiles() {

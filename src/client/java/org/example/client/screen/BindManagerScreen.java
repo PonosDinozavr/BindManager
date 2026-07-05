@@ -1,10 +1,16 @@
 package org.example.client.screen;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 import org.example.client.BindManagerClient;
 import org.example.client.BindConfigStore;
 import org.example.client.config.BindConfig;
@@ -20,19 +26,39 @@ public class BindManagerScreen extends Screen {
             0xCC3333, 0xCC7700, 0xCCCC00, 0x33CC33, 0x33CCCC,
             0x3333CC, 0xCC33CC, 0xDDDDDD, 0x774400, 0xFF77FF
     };
+    private static final String[] SORT_KEYS = {
+            "screen.bindmanager.sort.0", "screen.bindmanager.sort.1",
+            "screen.bindmanager.sort.2", "screen.bindmanager.sort.3"
+    };
+    private static final int[] SORT_COLORS = {
+            0xAAAAAA, 0x55FF55, 0xFFFF55, 0x55FFFF
+    };
 
     private final Screen parent;
     private List<BindConfig> profiles;
     private int scrollOffset;
     private int hoveredIndex = -1;
-    private int sortMode = 0;
+    private boolean showFavoritesOnly;
+
+    // Sort pills
+    private List<Integer> sortPriorities = new ArrayList<>(List.of(0, 1, 2, 3));
+    private int primarySortMode = 0;
+    private boolean dragPill;
+    private int dragPillIndex = -1;
+
+    // Entry drag
     private boolean dragging = false;
     private int dragIndex = -1;
-    private int dragStartY;
-    private int dragCurrentY;
+    private int dragMouseY;
+    private int dragVisualY;
 
-    private static final int ENTRY_HEIGHT = 26;
-    private static final int HEADER_HEIGHT = 30;
+    // Bolvanchik
+    private Bolvanchik bolvanchik;
+
+    private static final int ENTRY_HEIGHT = 28;
+    private static final int PILL_HEIGHT = 16;
+    private static final int PILL_Y = 28;
+    private static final int LIST_TOP = 48;
     private static final int FOOTER_HEIGHT = 60;
 
     public BindManagerScreen(Screen parent) {
@@ -44,7 +70,8 @@ public class BindManagerScreen extends Screen {
     protected void init() {
         super.init();
         scrollOffset = 0;
-        profiles = getSortedProfiles();
+        refreshProfiles();
+        bolvanchik = new Bolvanchik(width - 80, height - 80, 48, 48);
 
         int bottomY = height - 28;
         addDrawableChild(ButtonWidget.builder(
@@ -61,30 +88,20 @@ public class BindManagerScreen extends Screen {
                             return null;
                         }
                 ))
-        ).dimensions(width / 2 - 100, bottomY - 30, 200, 20).build());
+        ).dimensions(width / 2 - 160, bottomY - 30, 100, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                Text.translatable("screen.bindmanager.filter_fav"),
+                btn -> {
+                    showFavoritesOnly = !showFavoritesOnly;
+                    refreshProfiles();
+                }
+        ).dimensions(width / 2 - 50, bottomY - 30, 100, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.done"),
                 btn -> close()
-        ).dimensions(width / 2 - 100, bottomY, 200, 20).build());
-    }
-
-    private List<BindConfig> getSortedProfiles() {
-        List<BindConfig> list = new ArrayList<>(BindManagerClient.getConfigStore().getProfiles());
-        switch (sortMode) {
-            case 1:
-                list.sort(Comparator.comparing(c -> c.getName().toLowerCase()));
-                break;
-            case 2:
-                list.sort(Comparator.comparing((BindConfig c) -> !c.isFavorite()).thenComparing(c -> c.getName().toLowerCase()));
-                break;
-            case 3:
-                list.sort(Comparator.comparingInt(BindConfig::getColor).thenComparing(c -> c.getName().toLowerCase()));
-                break;
-            default:
-                break;
-        }
-        return list;
+        ).dimensions(width / 2 + 60, bottomY - 30, 100, 20).build());
     }
 
     private void refreshProfiles() {
@@ -92,91 +109,243 @@ public class BindManagerScreen extends Screen {
         profiles = getSortedProfiles();
     }
 
+    private List<BindConfig> getSortedProfiles() {
+        List<BindConfig> list = new ArrayList<>(BindManagerClient.getConfigStore().getProfiles());
+        if (showFavoritesOnly) {
+            list.removeIf(c -> !c.isFavorite());
+        }
+        list.sort((a, b) -> {
+            for (int mode : sortPriorities) {
+                int cmp = compareByMode(a, b, mode);
+                if (cmp != 0) return cmp;
+            }
+            return 0;
+        });
+        return list;
+    }
+
+    private int compareByMode(BindConfig a, BindConfig b, int mode) {
+        return switch (mode) {
+            case 0 -> 0;
+            case 1 -> a.getName().toLowerCase().compareTo(b.getName().toLowerCase());
+            case 2 -> Boolean.compare(b.isFavorite(), a.isFavorite());
+            case 3 -> Integer.compare(a.getColor(), b.getColor());
+            default -> 0;
+        };
+    }
+
+    private int getListLeft() { return 8; }
+    private int getListRight() { return width - 8; }
+    private int getMaxVisible() { return (height - LIST_TOP - FOOTER_HEIGHT) / ENTRY_HEIGHT; }
+
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
 
-        String sortLabel = Text.translatable("screen.bindmanager.sort." + sortMode).getString();
-        context.drawText(textRenderer, Text.translatable("screen.bindmanager.sort", sortLabel), 10, 22, 0xAAAAAA, false);
+        bolvanchik.update(width, height);
+        renderHeader(context);
+        renderPills(context, mouseX, mouseY);
+        renderProfileList(context, mouseX, mouseY, delta);
+        bolvanchik.render(context);
+    }
 
-        int startY = HEADER_HEIGHT + 4;
-        int maxVisible = (height - HEADER_HEIGHT - FOOTER_HEIGHT) / ENTRY_HEIGHT;
+    private void renderHeader(DrawContext ctx) {
+        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+
+        String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
+        if (activeName != null) {
+            Text activeText = Text.translatable("screen.bindmanager.active_profile", activeName);
+            ctx.drawText(textRenderer, activeText, 10, 14, 0x55FF55, false);
+        }
+    }
+
+    private void renderPills(DrawContext ctx, int mouseX, int mouseY) {
+        int pillStartX = 10;
+        int gap = 4;
+        int x = pillStartX;
+        int numPills = sortPriorities.size();
+
+        for (int idx = 0; idx < numPills; idx++) {
+            int mode = sortPriorities.get(idx);
+            Text label = Text.translatable(SORT_KEYS[mode]);
+            int textW = textRenderer.getWidth(label);
+            int pillW = textW + 12;
+            int pillH = PILL_HEIGHT;
+            boolean hovered = mouseX >= x && mouseX < x + pillW && mouseY >= PILL_Y && mouseY < PILL_Y + pillH;
+            boolean active = mode == primarySortMode;
+
+            int bgColor = active ? 0x8800AA00 : (hovered ? 0x44FFFFFF : 0x22FFFFFF);
+            ctx.fill(x, PILL_Y, x + pillW, PILL_Y + pillH, bgColor);
+            ctx.fill(x, PILL_Y, x + 2, PILL_Y + pillH, 0xFF000000 | SORT_COLORS[mode]);
+            ctx.drawText(textRenderer, label, x + 6, PILL_Y + 4, active ? 0xFFFFFF : 0xAAAAAA, false);
+
+            x += pillW + gap;
+        }
+
+        String pillsHint = Text.translatable("screen.bindmanager.sort_hint").getString();
+        ctx.drawText(textRenderer, Text.literal(pillsHint), width - textRenderer.getWidth(pillsHint) - 10, PILL_Y + 4, 0x555555, false);
+    }
+
+    private void renderProfileList(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        int startY = LIST_TOP;
+        int maxVisible = getMaxVisible();
+        int listLeft = getListLeft();
+        int listRight = getListRight();
         hoveredIndex = -1;
 
-        int listLeft = 8;
-        int listRight = width - 8;
+        ctx.fill(listLeft, startY - 2, listRight, startY - 1, 0x33FFFFFF);
 
         for (int i = 0; i < maxVisible && (i + scrollOffset) < profiles.size(); i++) {
             int index = i + scrollOffset;
             BindConfig config = profiles.get(index);
             int y = startY + i * ENTRY_HEIGHT;
 
-            if (dragging && index == dragIndex) {
-                y = dragCurrentY - ENTRY_HEIGHT / 2;
-            }
+            boolean isDraggingThis = dragging && index == dragIndex;
 
-            boolean hovered = mouseX >= listLeft && mouseX <= listRight && mouseY >= y && mouseY < y + ENTRY_HEIGHT - 1;
+            // Calculate target drop position for indicator
+            int effectiveY = isDraggingThis ? dragVisualY : y;
+            boolean hovered = !dragging && mouseX >= listLeft && mouseX <= listRight && mouseY >= y && mouseY < y + ENTRY_HEIGHT - 1;
             if (hovered) hoveredIndex = index;
 
+            if (isDraggingThis) {
+                ctx.fill(listLeft, dragVisualY - 1, listRight, dragVisualY + ENTRY_HEIGHT - 1, 0x44AAFF88);
+                ctx.fill(listLeft, dragVisualY - 1, listRight, dragVisualY, 0xFF55FF55);
+                ctx.fill(listLeft, dragVisualY + ENTRY_HEIGHT - 2, listRight, dragVisualY + ENTRY_HEIGHT - 1, 0xFF55FF55);
+            }
+
             int bgColor = hovered ? 0x44FFFFFF : 0x22FFFFFF;
-            context.fill(listLeft, y, listRight, y + ENTRY_HEIGHT - 1, bgColor);
+            int borderColor = isDraggingThis && index == dragIndex ? 0xFF55FF55 : 0x00000000;
+            if (borderColor != 0) {
+                ctx.fill(listLeft, y, listRight, y + ENTRY_HEIGHT - 1, 0x33AAFF88);
+            } else {
+                ctx.fill(listLeft, y, listRight, y + ENTRY_HEIGHT - 1, bgColor);
+            }
 
             int colorStrip = config.getColor();
-            context.fill(listLeft, y, listLeft + 3, y + ENTRY_HEIGHT - 1, 0xFF000000 | colorStrip);
+            ctx.fill(listLeft, y, listLeft + 3, y + ENTRY_HEIGHT - 1, 0xFF000000 | colorStrip);
 
             int nameX = listLeft + 8;
             int nameColor = config.isFavorite() ? 0xFFFF55 : 0xFFFFFF;
             String displayName = config.getName();
             if (config.isFavorite()) {
-                displayName = Formatting.YELLOW + "\u2605" + Formatting.RESET + " " + displayName;
+                displayName = Formatting.YELLOW + "\u2605 " + Formatting.RESET + displayName;
             }
-            context.drawText(textRenderer, Text.literal(displayName), nameX, y + 5, nameColor, false);
 
-            int buttonY = y + 5;
-            int btnW = 40;
-            int gap = 4;
-            int favX = listRight - btnW - gap;
-            int colorX = favX - btnW - gap;
-            int deleteX = colorX - btnW - gap;
-            int renameX = deleteX - btnW - gap;
-            int loadX = renameX - btnW - gap;
+            // Draw active indicator
+            String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
+            boolean isActive = config.getName().equals(activeName);
+            if (isActive) {
+                ctx.drawText(textRenderer, Text.literal("> "), nameX - 10, y + 6, 0x55FF55, false);
+                ctx.fill(listLeft + 3, y, listLeft + 5, y + ENTRY_HEIGHT - 1, 0xFF55FF55);
+            }
 
-            drawBtn(context, loadX, buttonY, btnW, Text.translatable("screen.bindmanager.load"), 0x55FF55, hovered && mouseX >= loadX && mouseX < loadX + btnW);
-            drawBtn(context, renameX, buttonY, btnW, Text.translatable("screen.bindmanager.rename"), 0xFFFF55, hovered && mouseX >= renameX && mouseX < renameX + btnW);
-            drawBtn(context, deleteX, buttonY, btnW, Text.translatable("screen.bindmanager.delete"), 0xFF5555, hovered && mouseX >= deleteX && mouseX < deleteX + btnW);
-            drawBtn(context, colorX, buttonY, btnW, Text.translatable("screen.bindmanager.color"), 0x55FFFF, hovered && mouseX >= colorX && mouseX < colorX + btnW);
+            float scale = delta;
+            ctx.drawText(textRenderer, Text.literal(displayName), nameX + 2, y + 6, nameColor, false);
 
-            String favText = config.isFavorite() ? "\u2605" : "\u2606";
+            int btnW = 38;
+            int gap = 3;
+            int bx = listRight;
+            int buttonY = y + 4;
+
+            int delX = bx - btnW;
+            int colX = delX - btnW - gap;
+            int renX = colX - btnW - gap;
+            int favX = renX - btnW - gap;
+            int loadX = favX - btnW - gap;
+
+            drawHoverBtn(ctx, loadX, buttonY, btnW, "screen.bindmanager.load", 0x55FF55, mouseX, mouseY);
+            drawHoverBtn(ctx, renX, buttonY, btnW, "screen.bindmanager.rename", 0xFFFF55, mouseX, mouseY);
+            drawHoverBtn(ctx, delX, buttonY, btnW, "screen.bindmanager.delete", 0xFF5555, mouseX, mouseY);
+            drawHoverBtn(ctx, colX, buttonY, btnW, "screen.bindmanager.color", 0x55FFFF, mouseX, mouseY);
+
+            String star = config.isFavorite() ? "\u2605" : "\u2606";
             int favColor = config.isFavorite() ? 0xFFFF55 : 0xAAAAAA;
-            drawBtn(context, favX, buttonY, btnW, Text.literal(favText), favColor, hovered && mouseX >= favX && mouseX < favX + btnW);
+            drawHoverBtnLiteral(ctx, favX, buttonY, btnW, star, favColor, mouseX, mouseY);
         }
 
         if (profiles.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.bindmanager.empty"), width / 2, startY + 30, 0x888888);
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.bindmanager.empty"), width / 2, LIST_TOP + 40, 0x888888);
+        }
+
+        // Draw entry drag ghost
+        if (dragging && dragIndex >= 0 && dragIndex < profiles.size()) {
+            BindConfig ghostConfig = profiles.get(dragIndex);
+            int ghostY = dragVisualY;
+            ctx.fill(listLeft, ghostY, listRight, ghostY + ENTRY_HEIGHT - 1, 0x66AAFF88);
+            ctx.fill(listLeft, ghostY, listLeft + 3, ghostY + ENTRY_HEIGHT - 1, 0xFF55FF55);
+            ctx.drawText(textRenderer, Text.literal("\u2261 " + ghostConfig.getName()), listLeft + 8, ghostY + 6, 0xFFFFFF, false);
+        }
+
+        // Scroll indicator
+        if (profiles.size() > maxVisible) {
+            String scrollText = (scrollOffset + 1) + "-" + Math.min(scrollOffset + maxVisible, profiles.size()) + "/" + profiles.size();
+            ctx.drawText(textRenderer, Text.literal(scrollText), width / 2 - textRenderer.getWidth(scrollText) / 2, height - 30, 0x888888, false);
         }
     }
 
-    private void drawBtn(DrawContext ctx, int x, int y, int w, Text text, int color, boolean highlight) {
-        int bg = highlight ? 0x44FFFFFF : 0x22FFFFFF;
-        ctx.fill(x - 2, y - 1, x + w + 2, y + 15, bg);
-        ctx.drawText(textRenderer, text, x, y + 2, color, false);
+    private void drawHoverBtn(DrawContext ctx, int x, int y, int w, String langKey, int color, int mx, int my) {
+        boolean hovered = mx >= x && mx < x + w && my >= y && my < y + 14;
+        int bg = hovered ? (0x88 << 24) : 0x22FFFFFF;
+        ctx.fill(x - 1, y - 1, x + w + 1, y + 13, bg);
+        if (hovered) ctx.fill(x - 1, y - 1, x + w + 1, y, 0xFF000000 | color);
+        ctx.drawText(textRenderer, Text.translatable(langKey), x + 2, y + 2, hovered ? 0xFFFFFF : color, false);
+    }
+
+    private void drawHoverBtnLiteral(DrawContext ctx, int x, int y, int w, String literal, int color, int mx, int my) {
+        boolean hovered = mx >= x && mx < x + w && my >= y && my < y + 14;
+        int bg = hovered ? (0x88 << 24) : 0x22FFFFFF;
+        ctx.fill(x - 1, y - 1, x + w + 1, y + 13, bg);
+        if (hovered) ctx.fill(x - 1, y - 1, x + w + 1, y, 0xFF000000 | color);
+        ctx.drawText(textRenderer, Text.literal(literal), x + 2, y + 2, hovered ? 0xFFFFFF : color, false);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
 
-        int startY = HEADER_HEIGHT + 4;
-        int maxVisible = (height - HEADER_HEIGHT - FOOTER_HEIGHT) / ENTRY_HEIGHT;
-        int listLeft = 8;
-        int listRight = width - 8;
-
-        if (button == 0 && mouseX >= 10 && mouseX <= 100 && mouseY >= 18 && mouseY <= 28) {
-            sortMode = (sortMode + 1) % 4;
-            refreshProfiles();
-            return true;
+        // Bolvanchik interaction
+        if (bolvanchik.contains(mouseX, mouseY)) {
+            if (button == 1) {
+                bolvanchik.grab(mouseX, mouseY);
+                return true;
+            } else if (button == 0) {
+                bolvanchik.playSound();
+                return true;
+            }
         }
+
+        // Sort pills
+        int pillStartX = 10;
+        int gap = 4;
+        int x = pillStartX;
+        for (int idx = 0; idx < sortPriorities.size(); idx++) {
+            int mode = sortPriorities.get(idx);
+            Text label = Text.translatable(SORT_KEYS[mode]);
+            int textW = textRenderer.getWidth(label);
+            int pillW = textW + 12;
+            if (mouseX >= x && mouseX < x + pillW && mouseY >= PILL_Y && mouseY < PILL_Y + PILL_HEIGHT) {
+                if (button == 0) {
+                    if (primarySortMode == mode) {
+                        primarySortMode = -1;
+                    } else {
+                        primarySortMode = mode;
+                    }
+                    refreshProfiles();
+                    return true;
+                } else if (button == 1) {
+                    dragPill = true;
+                    dragPillIndex = idx;
+                    return true;
+                }
+            }
+            x += pillW + gap;
+        }
+
+        // Profile list
+        int startY = LIST_TOP;
+        int maxVisible = getMaxVisible();
+        int listLeft = getListLeft();
+        int listRight = getListRight();
 
         for (int i = 0; i < maxVisible && (i + scrollOffset) < profiles.size(); i++) {
             int index = i + scrollOffset;
@@ -184,64 +353,41 @@ public class BindManagerScreen extends Screen {
             int y = startY + i * ENTRY_HEIGHT;
 
             if (mouseY >= y && mouseY < y + ENTRY_HEIGHT - 1 && mouseX >= listLeft && mouseX <= listRight) {
-                int btnW = 40;
-                int gap = 4;
-                int favX = listRight - btnW - gap;
-                int colorX = favX - btnW - gap;
-                int deleteX = colorX - btnW - gap;
-                int renameX = deleteX - btnW - gap;
-                int loadX = renameX - btnW - gap;
-                int buttonY = y + 5;
+                int btnW = 38;
+                int gap2 = 3;
+                int bx = listRight;
+                int buttonY = y + 4;
+
+                int delX = bx - btnW;
+                int colX = delX - btnW - gap2;
+                int renX = colX - btnW - gap2;
+                int favX = renX - btnW - gap2;
+                int loadX = favX - btnW - gap2;
 
                 if (button == 0) {
                     if (mouseX >= loadX && mouseX < loadX + btnW) {
-                        BindManagerClient.getConfigStore().loadProfile(config.getName());
-                        client.setScreen(null);
+                        loadProfile(config.getName());
                         return true;
-                    } else if (mouseX >= renameX && mouseX < renameX + btnW) {
-                        String currentName = config.getName();
-                        client.setScreen(new NameInputScreen(
-                                this,
-                                Text.translatable("screen.bindmanager.rename.title"),
-                                Text.translatable("screen.bindmanager.rename.field"),
-                                newName -> {
-                                    if (!newName.isEmpty() && !newName.equals(currentName)) {
-                                        BindManagerClient.getConfigStore().renameProfile(currentName, newName);
-                                        refreshProfiles();
-                                    }
-                                    return null;
-                                }
-                        ));
+                    } else if (mouseX >= renX && mouseX < renX + btnW) {
+                        renameProfile(config);
                         return true;
-                    } else if (mouseX >= deleteX && mouseX < deleteX + btnW) {
-                        String name = config.getName();
-                        client.setScreen(new ConfirmDeleteScreen(
-                                this, name,
-                                () -> {
-                                    BindManagerClient.getConfigStore().deleteProfile(name);
-                                    refreshProfiles();
-                                }
-                        ));
+                    } else if (mouseX >= delX && mouseX < delX + btnW) {
+                        deleteProfile(config);
                         return true;
-                    } else if (mouseX >= colorX && mouseX < colorX + btnW) {
+                    } else if (mouseX >= colX && mouseX < colX + btnW) {
                         openColorPicker(config);
                         return true;
                     } else if (mouseX >= favX && mouseX < favX + btnW) {
-                        config.setFavorite(!config.isFavorite());
-                        BindManagerClient.getConfigStore().saveExistingProfile(config);
-                        refreshProfiles();
+                        toggleFavorite(config);
                         return true;
                     } else {
-                        BindManagerClient.getConfigStore().loadProfile(config.getName());
-                        client.setScreen(null);
+                        // Start drag on LMB on entry
+                        dragging = true;
+                        dragIndex = index;
+                        dragMouseY = (int) mouseY;
+                        dragVisualY = dragMouseY - ENTRY_HEIGHT / 2;
                         return true;
                     }
-                } else if (button == 1) {
-                    dragging = true;
-                    dragIndex = index;
-                    dragStartY = (int) mouseY;
-                    dragCurrentY = dragStartY;
-                    return true;
                 }
             }
         }
@@ -250,10 +396,10 @@ public class BindManagerScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (dragging && button == 1) {
+        if (dragging && button == 0) {
             dragging = false;
-            int startY = HEADER_HEIGHT + 4;
-            int dropIndex = Math.max(0, Math.min((int) ((mouseY - startY) / ENTRY_HEIGHT) + scrollOffset, profiles.size() - 1));
+            int startY = LIST_TOP;
+            int dropIndex = MathHelper.clamp((int) ((mouseY - startY) / ENTRY_HEIGHT) + scrollOffset, 0, profiles.size() - 1);
             if (dropIndex != dragIndex && dragIndex >= 0 && dragIndex < profiles.size()) {
                 BindConfigStore store = BindManagerClient.getConfigStore();
                 BindConfig dragged = profiles.get(dragIndex);
@@ -268,13 +414,50 @@ public class BindManagerScreen extends Screen {
             dragIndex = -1;
             return true;
         }
+        if (dragPill && button == 1) {
+            dragPill = false;
+            dragPillIndex = -1;
+            return true;
+        }
+        if (button == 1) {
+            bolvanchik.release(mouseX, mouseY);
+            return true;
+        }
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (dragging && button == 1) {
-            dragCurrentY = (int) mouseY;
+        if (dragging && button == 0) {
+            dragMouseY = (int) mouseY;
+            dragVisualY = MathHelper.clamp(dragMouseY, LIST_TOP, height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
+            return true;
+        }
+        if (dragPill && button == 1) {
+            // Reorder sort pills
+            int pillStartX = 10;
+            int gap = 4;
+            int x = pillStartX;
+            for (int idx = 0; idx < sortPriorities.size(); idx++) {
+                if (idx == dragPillIndex) continue;
+                int mode = sortPriorities.get(idx);
+                Text label = Text.translatable(SORT_KEYS[mode]);
+                int textW = textRenderer.getWidth(label);
+                int pillW = textW + 12;
+                int centerX = x + pillW / 2;
+                if (mouseX < centerX) {
+                    int modeToMove = sortPriorities.remove(dragPillIndex);
+                    sortPriorities.add(idx, modeToMove);
+                    dragPillIndex = idx;
+                    refreshProfiles();
+                    return true;
+                }
+                x += pillW + gap;
+            }
+            return true;
+        }
+        if (button == 1 && bolvanchik.grabbed) {
+            bolvanchik.drag(mouseX, mouseY);
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
@@ -282,10 +465,50 @@ public class BindManagerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        int maxVisible = (height - HEADER_HEIGHT - FOOTER_HEIGHT) / ENTRY_HEIGHT;
+        int maxVisible = getMaxVisible();
         int maxScroll = Math.max(0, profiles.size() - maxVisible);
-        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset - (int) verticalAmount));
+        scrollOffset = MathHelper.clamp(scrollOffset - (int) verticalAmount, 0, maxScroll);
         return true;
+    }
+
+    private void loadProfile(String name) {
+        BindManagerClient.getConfigStore().loadProfile(name);
+        String msg = Text.translatable("screen.bindmanager.loaded", name).getString();
+        BindManagerClient.showToast(msg);
+        client.setScreen(null);
+    }
+
+    private void renameProfile(BindConfig config) {
+        String currentName = config.getName();
+        client.setScreen(new NameInputScreen(
+                this,
+                Text.translatable("screen.bindmanager.rename.title"),
+                Text.translatable("screen.bindmanager.rename.field"),
+                newName -> {
+                    if (!newName.isEmpty() && !newName.equals(currentName)) {
+                        BindManagerClient.getConfigStore().renameProfile(currentName, newName);
+                        refreshProfiles();
+                    }
+                    return null;
+                }
+        ));
+    }
+
+    private void deleteProfile(BindConfig config) {
+        String name = config.getName();
+        client.setScreen(new ConfirmDeleteScreen(
+                this, name,
+                () -> {
+                    BindManagerClient.getConfigStore().deleteProfile(name);
+                    refreshProfiles();
+                }
+        ));
+    }
+
+    private void toggleFavorite(BindConfig config) {
+        config.setFavorite(!config.isFavorite());
+        BindManagerClient.getConfigStore().saveExistingProfile(config);
+        refreshProfiles();
     }
 
     private void openColorPicker(BindConfig config) {
@@ -297,6 +520,81 @@ public class BindManagerScreen extends Screen {
         client.setScreen(parent);
     }
 
+    // --- Bolvanchik physics object ---
+    private static class Bolvanchik {
+        private static final Identifier TEXTURE = Identifier.of("bind-manager", "textures/bolvanchik.png");
+        private static final String[] FROG_SOUNDS = {
+                "Frog_idle1", "Frog_idle2", "Frog_idle3", "Frog_idle4",
+                "Frog_idle5", "Frog_idle6", "Frog_idle7", "Frog_idle8"
+        };
+
+        double x, y, w, h;
+        double vx, vy;
+        boolean grabbed;
+        double grabOffX, grabOffY;
+
+        Bolvanchik(double x, double y, double w, double h) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+        }
+
+        void update(int screenW, int screenH) {
+            if (!grabbed) {
+                vy += 0.4;
+                vx *= 0.97;
+                vy *= 0.97;
+                x += vx;
+                y += vy;
+                if (x < 0) { x = 0; vx = -vx * 0.6; }
+                if (x + w > screenW) { x = screenW - w; vx = -vx * 0.6; }
+                if (y < 0) { y = 0; vy = -vy * 0.6; }
+                if (y + h > screenH) { y = screenH - h; vy = -vy * 0.6; }
+            }
+        }
+
+        boolean contains(double mx, double my) {
+            return mx >= x && mx < x + w && my >= y && my < y + h;
+        }
+
+        void grab(double mx, double my) {
+            grabbed = true;
+            grabOffX = mx - x;
+            grabOffY = my - y;
+            vx = 0;
+            vy = 0;
+        }
+
+        void drag(double mx, double my) {
+            x = mx - grabOffX;
+            y = my - grabOffY;
+        }
+
+        void release(double mx, double my) {
+            if (grabbed) {
+                grabbed = false;
+                vx = (mx - x - grabOffX) * 0.3;
+                vy = (my - y - grabOffY) * 0.3;
+            }
+        }
+
+        void playSound() {
+            int idx = (int) (Math.random() * FROG_SOUNDS.length);
+            Identifier soundId = Identifier.of("bind-manager", FROG_SOUNDS[idx]);
+            var client = MinecraftClient.getInstance();
+            if (client != null) {
+                SoundEvent soundEvent = SoundEvent.of(soundId);
+                client.getSoundManager().play(PositionedSoundInstance.master(soundEvent, 1.0F));
+            }
+        }
+
+        void render(DrawContext ctx) {
+            ctx.drawTexture(RenderLayer::getGuiTextured, TEXTURE, (int) x, (int) y, (int) w, (int) h, 0, 0, (int) w, (int) h, (int) w, (int) h);
+        }
+    }
+
+    // --- Color picker ---
     public static class ColorPickerScreen extends Screen {
         private final Screen parent;
         private final BindConfig config;

@@ -1,0 +1,10 @@
+{
+  "Frog_idle1": { "sounds": ["bind-manager:Frog_idle1"] },
+  "Frog_idle2": { "sounds": ["bind-manager:Frog_idle2"] },
+  "Frog_idle3": { "sounds": ["bind-manager:Frog_idle3"] },
+  "Frog_idle4": { "sounds": ["bind-manager:Frog_idle4"] },
+  "Frog_idle5": { "sounds": ["bind-manager:Frog_idle5"] },
+  "Frog_idle6": { "sounds": ["bind-manager:Frog_idle6"] },
+  "Frog_idle7": { "sounds": ["bind-manager:Frog_idle7"] },
+  "Frog_idle8": { "sounds": ["bind-manager:Frog_idle8"] }
+}
