@@ -1,0 +1,8 @@
+﻿.gradle/
+node_modules/
+build/
+.idea/
+*.iml
+*.log
+.gradle/loom-cache/
+.DS_Store

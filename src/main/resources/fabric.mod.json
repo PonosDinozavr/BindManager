@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "bind-manager",
+  "version": "${version}",
+  "name": "bind-manager",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/bind-manager/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "org.example.client.BindManagerDataGenerator"
+    ],
+    "client": [
+      "org.example.client.BindManagerClient"
+    ],
+    "main": [
+      "org.example.BindManager"
+    ]
+  },
+  "mixins": [
+    "bind-manager.mixins.json",
+    {
+      "config": "bind-manager.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
