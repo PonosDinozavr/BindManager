@@ -4,7 +4,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
-import org.example.client.BindConfigStore;
 import org.example.client.BindManagerClient;
 import org.example.client.config.BindConfig;
 
@@ -35,7 +34,7 @@ public class BindManagerScreen extends Screen {
                         Text.translatable("screen.bindmanager.create.title"),
                         Text.translatable("screen.bindmanager.create.field"),
                         name -> {
-                            if (!name.isEmpty() && !BindManagerClient.getConfigStore().profileExists(name)) {
+                            if (!name.isEmpty()) {
                                 BindManagerClient.getConfigStore().saveProfile(name);
                             }
                             return null;

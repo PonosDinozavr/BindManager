@@ -2,26 +2,25 @@
   "schemaVersion": 1,
   "id": "bind-manager",
   "version": "${version}",
-  "name": "bind-manager",
-  "description": "",
-  "authors": [],
-  "contact": {},
+  "name": "Change of Control",
+  "description": "A mod for quickly switching keybind profiles. Create, save, load, rename and delete custom keybinding presets. Perfect for players who need different control schemes for different game situations (PvP, building, minigames, etc.).",
+  "authors": [
+    "ponos_dinozavr"
+  ],
+  "contact": {
+    "homepage": "https://github.com/PonosDinozavr/BindManager",
+    "sources": "https://github.com/PonosDinozavr/BindManager",
+    "issues": "https://discord.com/channels/@me/1424623830134952069"
+  },
   "license": "All-Rights-Reserved",
   "icon": "assets/bind-manager/icon.png",
   "environment": "client",
   "entrypoints": {
-    "fabric-datagen": [
-      "org.example.client.BindManagerDataGenerator"
-    ],
     "client": [
       "org.example.client.BindManagerClient"
-    ],
-    "main": [
-      "org.example.BindManager"
     ]
   },
   "mixins": [
-    "bind-manager.mixins.json",
     {
       "config": "bind-manager.client.mixins.json",
       "environment": "client"

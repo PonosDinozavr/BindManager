@@ -1,7 +1,5 @@
 package org.example.client;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
@@ -14,7 +12,6 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class BindConfigStore {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String PROFILES_DIR = "bindmanager/profiles";
 
     private final Path profilesPath;
@@ -67,13 +64,20 @@ public class BindConfigStore {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client != null && client.options != null) {
             for (KeyBinding binding : client.options.allKeys) {
-                InputUtil.Key boundKey = binding.getBoundKey();
-                if (boundKey != null) {
-                    config.setKeyBinding(binding.getTranslationKey(), boundKey.getTranslationKey());
+                String boundKey = binding.getBoundKeyTranslationKey();
+                if (boundKey != null && !boundKey.isEmpty() && !"key.keyboard.unknown".equals(boundKey)) {
+                    config.setKeyBinding(binding.getTranslationKey(), boundKey);
                 }
             }
         }
-        profiles.put(name, config);
+        while (profiles.containsKey(config.getName())) {
+            int counter = 1;
+            while (profiles.containsKey(name + " (" + counter + ")")) {
+                counter++;
+            }
+            config.setName(name + " (" + counter + ")");
+        }
+        profiles.put(config.getName(), config);
         saveProfileToFile(config);
     }
 
@@ -124,7 +128,6 @@ public class BindConfigStore {
                 binding.setBoundKey(key);
             }
         }
-        KeyBinding.updateKeysByCode();
         options.write();
     }
 
