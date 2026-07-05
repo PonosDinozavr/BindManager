@@ -5,16 +5,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.screen.option.KeybindsScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
 import org.example.client.mixin.client.ScreenAccessor;
 import org.example.client.config.BindConfig;
 import org.example.client.screen.BindManagerScreen;
@@ -27,10 +22,6 @@ import java.util.Map;
 public class BindManagerClient implements ClientModInitializer {
     private static KeyBinding openManagerKey;
     private static BindConfigStore configStore;
-
-    private static String toastMessage;
-    private static int toastTimer;
-    private static final int TOAST_DURATION = 80;
 
     private static int autoSaveCheckTimer;
 
@@ -49,7 +40,6 @@ public class BindManagerClient implements ClientModInitializer {
             while (openManagerKey.wasPressed()) {
                 client.setScreen(new BindManagerScreen(client.currentScreen));
             }
-            if (toastTimer > 0) toastTimer--;
 
             // Auto-save active profile changes while in KeybindsScreen
             if (client.currentScreen instanceof KeybindsScreen) {
@@ -88,8 +78,6 @@ public class BindManagerClient implements ClientModInitializer {
                                 ))
                         ).dimensions(scaledWidth - 22, 2, 20, 20).build()
                 );
-
-                accessor.invokeAddDrawableChild(new ToastWidget());
             }
         });
     }
@@ -131,54 +119,8 @@ public class BindManagerClient implements ClientModInitializer {
         return false;
     }
 
-    public static void showToast(String message) {
-        toastMessage = message;
-        toastTimer = TOAST_DURATION;
-    }
-
     public static BindConfigStore getConfigStore() {
         return configStore;
     }
 
-    private static class ToastWidget implements Element, net.minecraft.client.gui.Drawable, Selectable {
-        @Override
-        public void render(DrawContext ctx, int mx, int my, float delta) {
-            if (toastTimer > 0 && toastMessage != null) {
-                int alpha = MathHelper.clamp(toastTimer * 4, 0, 255);
-                int color = (alpha << 24) | 0x55FF55;
-                int w = MinecraftClient.getInstance().getWindow().getScaledWidth();
-                int h = MinecraftClient.getInstance().getWindow().getScaledHeight();
-                ctx.drawCenteredTextWithShadow(
-                        MinecraftClient.getInstance().textRenderer,
-                        Text.literal(toastMessage),
-                        w / 2, h - 40, color
-                );
-            }
-        }
-
-        @Override
-        public boolean mouseClicked(double mx, double my, int b) { return false; }
-        @Override
-        public boolean mouseReleased(double mx, double my, int b) { return false; }
-        @Override
-        public boolean mouseDragged(double mx, double my, int b, double dx, double dy) { return false; }
-        @Override
-        public boolean mouseScrolled(double mx, double my, double h, double v) { return false; }
-        @Override
-        public boolean keyPressed(int k, int s, int m) { return false; }
-        @Override
-        public boolean keyReleased(int k, int s, int m) { return false; }
-        @Override
-        public boolean charTyped(char c, int m) { return false; }
-        @Override
-        public void setFocused(boolean f) {}
-        @Override
-        public boolean isFocused() { return false; }
-        @Override
-        public boolean isMouseOver(double mx, double my) { return false; }
-        @Override
-        public SelectionType getType() { return SelectionType.NONE; }
-        @Override
-        public void appendNarrations(NarrationMessageBuilder builder) {}
-    }
 }

@@ -1,16 +1,11 @@
 package org.example.client.screen;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.option.KeybindsScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.example.client.BindManagerClient;
 import org.example.client.BindConfigStore;
@@ -50,9 +45,6 @@ public class BindManagerScreen extends Screen {
     private int dragMouseY;
     private int dragVisualY;
 
-    // Bolvanchik
-    private Bolvanchik bolvanchik;
-
     private static final int ENTRY_HEIGHT = 28;
     private static final int HEADER_H = 16;
     private static final int SORT_PANEL_H = 24;
@@ -72,7 +64,6 @@ public class BindManagerScreen extends Screen {
         super.init();
         scrollOffset = 0;
         refreshProfiles();
-        bolvanchik = new Bolvanchik(width - 120, 50, 48, 48);
 
         int bottomY = height - 28;
         addDrawableChild(ButtonWidget.builder(
@@ -136,10 +127,8 @@ public class BindManagerScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
 
-        bolvanchik.update(width, height);
         renderHeader(context, mouseX, mouseY);
         renderProfileList(context, mouseX, mouseY, delta);
-        bolvanchik.render(context);
     }
 
     private void renderHeader(DrawContext ctx, int mouseX, int mouseY) {
@@ -288,17 +277,6 @@ public class BindManagerScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
 
-        // Bolvanchik interaction
-        if (bolvanchik.contains(mouseX, mouseY)) {
-            if (button == 1) {
-                bolvanchik.grab(mouseX, mouseY);
-                return true;
-            } else if (button == 0) {
-                bolvanchik.playSound();
-                return true;
-            }
-        }
-
         // Sort panel button clicks
         int panelY = HEADER_H + 2;
         int bH = 18;
@@ -391,10 +369,6 @@ public class BindManagerScreen extends Screen {
             dragIndex = -1;
             return true;
         }
-        if (button == 1) {
-            bolvanchik.release(mouseX, mouseY);
-            return true;
-        }
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -403,10 +377,6 @@ public class BindManagerScreen extends Screen {
         if (dragging && button == 0) {
             dragMouseY = (int) mouseY;
             dragVisualY = MathHelper.clamp(dragMouseY, getListTop(), height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
-            return true;
-        }
-        if (button == 1 && bolvanchik.grabbed) {
-            bolvanchik.drag(mouseX, mouseY);
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
@@ -422,8 +392,6 @@ public class BindManagerScreen extends Screen {
 
     private void loadProfile(String name) {
         BindManagerClient.getConfigStore().loadProfile(name);
-        String msg = Text.translatable("screen.bindmanager.loaded", name).getString();
-        BindManagerClient.showToast(msg);
     }
 
     private void renameProfile(BindConfig config) {
@@ -466,88 +434,6 @@ public class BindManagerScreen extends Screen {
     @Override
     public void close() {
         client.setScreen(parent);
-    }
-
-    // --- Bolvanchik physics object ---
-    private static class Bolvanchik {
-        private static final Identifier TEXTURE = Identifier.of("bind-manager", "bolvanchik");
-        private static final String[] FROG_SOUNDS = {
-                "Frog_idle1", "Frog_idle2", "Frog_idle3", "Frog_idle4",
-                "Frog_idle5", "Frog_idle6", "Frog_idle7", "Frog_idle8"
-        };
-
-        double x, y, w, h;
-        double vx, vy;
-        boolean grabbed;
-        double grabOffX, grabOffY;
-
-        Bolvanchik(double x, double y, double w, double h) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-        }
-
-        void update(int screenW, int screenH) {
-            if (!grabbed) {
-                vy += 0.4;
-                vx *= 0.97;
-                vy *= 0.97;
-                x += vx;
-                y += vy;
-                if (x < 0) { x = 0; vx = -vx * 0.6; }
-                if (x + w > screenW) { x = screenW - w; vx = -vx * 0.6; }
-                if (y < 0) { y = 0; vy = -vy * 0.6; }
-                if (y + h > screenH) { y = screenH - h; vy = -vy * 0.6; }
-            }
-        }
-
-        boolean contains(double mx, double my) {
-            return mx >= x && mx < x + w && my >= y && my < y + h;
-        }
-
-        void grab(double mx, double my) {
-            grabbed = true;
-            grabOffX = mx - x;
-            grabOffY = my - y;
-            vx = 0;
-            vy = 0;
-        }
-
-        void drag(double mx, double my) {
-            x = mx - grabOffX;
-            y = my - grabOffY;
-        }
-
-        void release(double mx, double my) {
-            if (grabbed) {
-                grabbed = false;
-                vx = (mx - x - grabOffX) * 0.3;
-                vy = (my - y - grabOffY) * 0.3;
-            }
-        }
-
-        void playSound() {
-            try {
-                int idx = (int) (Math.random() * FROG_SOUNDS.length);
-                Identifier soundId = Identifier.of("bind-manager", FROG_SOUNDS[idx]);
-                var mc = MinecraftClient.getInstance();
-                if (mc != null && mc.getSoundManager() != null) {
-                    SoundEvent soundEvent = SoundEvent.of(soundId);
-                    mc.getSoundManager().play(PositionedSoundInstance.master(soundEvent, 1.0F));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        void render(DrawContext ctx) {
-            try {
-                ctx.drawTexture(RenderLayer::getGuiTextured, TEXTURE, (int) x, (int) y, (int) w, (int) h, 0, 0, (int) w, (int) h, (int) w, (int) h);
-            } catch (Exception e) {
-                // silently ignore texture errors
-            }
-        }
     }
 
     // --- Color picker ---
