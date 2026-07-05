@@ -83,12 +83,12 @@ public class BindManagerClient implements ClientModInitializer {
                         btn -> {
                             String activeName = configStore.getActiveProfileName();
                             if (activeName != null) {
-                                configStore.saveProfile(
-                                        activeName,
-                                        getCurrentBindingsSnapshot(),
-                                        configStore.getActiveProfile().isFavorite(),
-                                        configStore.getActiveProfile().getColor()
-                                );
+                                BindConfig activeConfig = configStore.getActiveProfile();
+                                if (activeConfig != null) {
+                                    activeConfig.getKeyBindings().clear();
+                                    activeConfig.getKeyBindings().putAll(getCurrentBindingsSnapshot());
+                                    configStore.saveExistingProfile(activeConfig);
+                                }
                                 showToast(Text.translatable("screen.bindmanager.saved", activeName).getString());
                                 changesDetected = false;
                                 shouldShowSaveBtn = false;

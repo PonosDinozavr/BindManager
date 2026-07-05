@@ -30,9 +30,6 @@ public class BindManagerScreen extends Screen {
             "screen.bindmanager.sort.0", "screen.bindmanager.sort.1",
             "screen.bindmanager.sort.2", "screen.bindmanager.sort.3"
     };
-    private static final int[] SORT_COLORS = {
-            0xAAAAAA, 0x55FF55, 0xFFFF55, 0x55FFFF
-    };
 
     private final Screen parent;
     private List<BindConfig> profiles;
@@ -40,11 +37,9 @@ public class BindManagerScreen extends Screen {
     private int hoveredIndex = -1;
     private boolean showFavoritesOnly;
 
-    // Sort pills
-    private List<Integer> sortPriorities = new ArrayList<>(List.of(0, 1, 2, 3));
-    private int primarySortMode = 0;
-    private boolean dragPill;
-    private int dragPillIndex = -1;
+    // Sort
+    private int sortMode = 0;
+    private boolean showSortMenu;
 
     // Entry drag
     private boolean dragging = false;
@@ -54,11 +49,11 @@ public class BindManagerScreen extends Screen {
 
     // Bolvanchik
     private Bolvanchik bolvanchik;
+    private static final Identifier BOLVANCHIK_TEX = Identifier.of("bind-manager", "bolvanchik");
 
     private static final int ENTRY_HEIGHT = 28;
-    private static final int PILL_HEIGHT = 16;
-    private static final int PILL_Y = 28;
-    private static final int LIST_TOP = 48;
+    private static final int HEADER_Y = 20;
+    private static final int LIST_TOP = 32;
     private static final int FOOTER_HEIGHT = 60;
 
     public BindManagerScreen(Screen parent) {
@@ -71,7 +66,7 @@ public class BindManagerScreen extends Screen {
         super.init();
         scrollOffset = 0;
         refreshProfiles();
-        bolvanchik = new Bolvanchik(width - 80, height - 80, 48, 48);
+        bolvanchik = new Bolvanchik(width - 96, height - 96, 64, 64);
 
         int bottomY = height - 28;
         addDrawableChild(ButtonWidget.builder(
@@ -88,7 +83,7 @@ public class BindManagerScreen extends Screen {
                             return null;
                         }
                 ))
-        ).dimensions(width / 2 - 160, bottomY - 30, 100, 20).build());
+        ).dimensions(width / 2 - 130, bottomY - 30, 80, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("screen.bindmanager.filter_fav"),
@@ -96,12 +91,12 @@ public class BindManagerScreen extends Screen {
                     showFavoritesOnly = !showFavoritesOnly;
                     refreshProfiles();
                 }
-        ).dimensions(width / 2 - 50, bottomY - 30, 100, 20).build());
+        ).dimensions(width / 2 - 40, bottomY - 30, 80, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.done"),
                 btn -> close()
-        ).dimensions(width / 2 + 60, bottomY - 30, 100, 20).build());
+        ).dimensions(width / 2 + 50, bottomY - 30, 80, 20).build());
     }
 
     private void refreshProfiles() {
@@ -114,24 +109,12 @@ public class BindManagerScreen extends Screen {
         if (showFavoritesOnly) {
             list.removeIf(c -> !c.isFavorite());
         }
-        list.sort((a, b) -> {
-            for (int mode : sortPriorities) {
-                int cmp = compareByMode(a, b, mode);
-                if (cmp != 0) return cmp;
-            }
-            return 0;
-        });
+        switch (sortMode) {
+            case 1 -> list.sort(Comparator.comparing(c -> c.getName().toLowerCase()));
+            case 2 -> list.sort(Comparator.comparing((BindConfig c) -> !c.isFavorite()).thenComparing(c -> c.getName().toLowerCase()));
+            case 3 -> list.sort(Comparator.comparingInt(BindConfig::getColor).thenComparing(c -> c.getName().toLowerCase()));
+        }
         return list;
-    }
-
-    private int compareByMode(BindConfig a, BindConfig b, int mode) {
-        return switch (mode) {
-            case 0 -> 0;
-            case 1 -> a.getName().toLowerCase().compareTo(b.getName().toLowerCase());
-            case 2 -> Boolean.compare(b.isFavorite(), a.isFavorite());
-            case 3 -> Integer.compare(a.getColor(), b.getColor());
-            default -> 0;
-        };
     }
 
     private int getListLeft() { return 8; }
@@ -144,46 +127,42 @@ public class BindManagerScreen extends Screen {
 
         bolvanchik.update(width, height);
         renderHeader(context);
-        renderPills(context, mouseX, mouseY);
         renderProfileList(context, mouseX, mouseY, delta);
         bolvanchik.render(context);
     }
 
     private void renderHeader(DrawContext ctx) {
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, 0xFFFFFF);
 
         String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
         if (activeName != null) {
             Text activeText = Text.translatable("screen.bindmanager.active_profile", activeName);
-            ctx.drawText(textRenderer, activeText, 10, 14, 0x55FF55, false);
-        }
-    }
-
-    private void renderPills(DrawContext ctx, int mouseX, int mouseY) {
-        int pillStartX = 10;
-        int gap = 4;
-        int x = pillStartX;
-        int numPills = sortPriorities.size();
-
-        for (int idx = 0; idx < numPills; idx++) {
-            int mode = sortPriorities.get(idx);
-            Text label = Text.translatable(SORT_KEYS[mode]);
-            int textW = textRenderer.getWidth(label);
-            int pillW = textW + 12;
-            int pillH = PILL_HEIGHT;
-            boolean hovered = mouseX >= x && mouseX < x + pillW && mouseY >= PILL_Y && mouseY < PILL_Y + pillH;
-            boolean active = mode == primarySortMode;
-
-            int bgColor = active ? 0x8800AA00 : (hovered ? 0x44FFFFFF : 0x22FFFFFF);
-            ctx.fill(x, PILL_Y, x + pillW, PILL_Y + pillH, bgColor);
-            ctx.fill(x, PILL_Y, x + 2, PILL_Y + pillH, 0xFF000000 | SORT_COLORS[mode]);
-            ctx.drawText(textRenderer, label, x + 6, PILL_Y + 4, active ? 0xFFFFFF : 0xAAAAAA, false);
-
-            x += pillW + gap;
+            ctx.drawText(textRenderer, activeText, 8, 8, 0x55FF55, false);
         }
 
-        String pillsHint = Text.translatable("screen.bindmanager.sort_hint").getString();
-        ctx.drawText(textRenderer, Text.literal(pillsHint), width - textRenderer.getWidth(pillsHint) - 10, PILL_Y + 4, 0x555555, false);
+        // Sort clickable text
+        String sortLabel = Text.translatable(SORT_KEYS[sortMode]).getString();
+        Text sortText = Text.translatable("screen.bindmanager.sort", sortLabel);
+        int sortX = width - textRenderer.getWidth(sortText) - 8;
+        int sortY = 8;
+        ctx.drawText(textRenderer, sortText, sortX, sortY, 0xAAAAAA, false);
+
+        // Draw sort popup menu
+        if (showSortMenu) {
+            int menuW = 90;
+            int itemH = 12;
+            int mX = sortX;
+            int mY = sortY + 12;
+            ctx.fill(mX, mY, mX + menuW, mY + 4 * itemH + 2, 0xCC222222);
+            ctx.fill(mX, mY, mX + menuW, mY + 4 * itemH + 2, 0xCC333333);
+            for (int i = 0; i < 4; i++) {
+                int iy = mY + 1 + i * itemH;
+                boolean sel = i == sortMode;
+                if (sel) ctx.fill(mX, iy, mX + menuW, iy + itemH, 0x8800AA00);
+                Text itemText = Text.translatable(SORT_KEYS[i]);
+                ctx.drawText(textRenderer, itemText, mX + 3, iy + 1, sel ? 0xFFFFFF : 0xAAAAAA, false);
+            }
+        }
     }
 
     private void renderProfileList(DrawContext ctx, int mouseX, int mouseY, float delta) {
@@ -250,17 +229,17 @@ public class BindManagerScreen extends Screen {
             int delX = bx - btnW;
             int colX = delX - btnW - gap;
             int renX = colX - btnW - gap;
-            int favX = renX - btnW - gap;
-            int loadX = favX - btnW - gap;
+            int loadX = renX - btnW - gap;
+            int favX = loadX - btnW - gap;
 
+            String star = config.isFavorite() ? "\u2605" : "\u2606";
+            int favColor = config.isFavorite() ? 0xFFFF55 : 0xAAAAAA;
+
+            drawHoverBtnLiteral(ctx, favX, buttonY, btnW, star, favColor, mouseX, mouseY);
             drawHoverBtn(ctx, loadX, buttonY, btnW, "screen.bindmanager.load", 0x55FF55, mouseX, mouseY);
             drawHoverBtn(ctx, renX, buttonY, btnW, "screen.bindmanager.rename", 0xFFFF55, mouseX, mouseY);
             drawHoverBtn(ctx, delX, buttonY, btnW, "screen.bindmanager.delete", 0xFF5555, mouseX, mouseY);
             drawHoverBtn(ctx, colX, buttonY, btnW, "screen.bindmanager.color", 0x55FFFF, mouseX, mouseY);
-
-            String star = config.isFavorite() ? "\u2605" : "\u2606";
-            int favColor = config.isFavorite() ? 0xFFFF55 : 0xAAAAAA;
-            drawHoverBtnLiteral(ctx, favX, buttonY, btnW, star, favColor, mouseX, mouseY);
         }
 
         if (profiles.isEmpty()) {
@@ -314,31 +293,34 @@ public class BindManagerScreen extends Screen {
             }
         }
 
-        // Sort pills
-        int pillStartX = 10;
-        int gap = 4;
-        int x = pillStartX;
-        for (int idx = 0; idx < sortPriorities.size(); idx++) {
-            int mode = sortPriorities.get(idx);
-            Text label = Text.translatable(SORT_KEYS[mode]);
-            int textW = textRenderer.getWidth(label);
-            int pillW = textW + 12;
-            if (mouseX >= x && mouseX < x + pillW && mouseY >= PILL_Y && mouseY < PILL_Y + PILL_HEIGHT) {
-                if (button == 0) {
-                    if (primarySortMode == mode) {
-                        primarySortMode = -1;
-                    } else {
-                        primarySortMode = mode;
-                    }
+        // Sort popup menu clicks
+        int sortX = width - textRenderer.getWidth(Text.translatable("screen.bindmanager.sort", Text.translatable(SORT_KEYS[sortMode]).getString())) - 8;
+        int sortY = 8;
+        int sortTextW = textRenderer.getWidth(Text.translatable("screen.bindmanager.sort", Text.translatable(SORT_KEYS[sortMode]).getString()));
+
+        if (showSortMenu) {
+            int menuW = 90;
+            int itemH = 12;
+            int mX = sortX;
+            int mY = sortY + 12;
+            boolean clickedItem = false;
+            for (int i = 0; i < 4; i++) {
+                int iy = mY + 1 + i * itemH;
+                if (mouseX >= mX && mouseX < mX + menuW && mouseY >= iy && mouseY < iy + itemH) {
+                    sortMode = i;
                     refreshProfiles();
-                    return true;
-                } else if (button == 1) {
-                    dragPill = true;
-                    dragPillIndex = idx;
-                    return true;
+                    clickedItem = true;
+                    break;
                 }
             }
-            x += pillW + gap;
+            showSortMenu = false;
+            if (clickedItem) return true;
+        }
+
+        // Sort text click
+        if (button == 0 && mouseX >= sortX && mouseX < sortX + sortTextW && mouseY >= sortY && mouseY < sortY + 10) {
+            showSortMenu = true;
+            return true;
         }
 
         // Profile list
@@ -361,11 +343,14 @@ public class BindManagerScreen extends Screen {
                 int delX = bx - btnW;
                 int colX = delX - btnW - gap2;
                 int renX = colX - btnW - gap2;
-                int favX = renX - btnW - gap2;
-                int loadX = favX - btnW - gap2;
+                int loadX = renX - btnW - gap2;
+                int favX = loadX - btnW - gap2;
 
                 if (button == 0) {
-                    if (mouseX >= loadX && mouseX < loadX + btnW) {
+                    if (mouseX >= favX && mouseX < favX + btnW) {
+                        toggleFavorite(config);
+                        return true;
+                    } else if (mouseX >= loadX && mouseX < loadX + btnW) {
                         loadProfile(config.getName());
                         return true;
                     } else if (mouseX >= renX && mouseX < renX + btnW) {
@@ -377,11 +362,8 @@ public class BindManagerScreen extends Screen {
                     } else if (mouseX >= colX && mouseX < colX + btnW) {
                         openColorPicker(config);
                         return true;
-                    } else if (mouseX >= favX && mouseX < favX + btnW) {
-                        toggleFavorite(config);
-                        return true;
                     } else {
-                        // Start drag on LMB on entry
+                        // Start drag on LMB on entry area
                         dragging = true;
                         dragIndex = index;
                         dragMouseY = (int) mouseY;
@@ -414,11 +396,6 @@ public class BindManagerScreen extends Screen {
             dragIndex = -1;
             return true;
         }
-        if (dragPill && button == 1) {
-            dragPill = false;
-            dragPillIndex = -1;
-            return true;
-        }
         if (button == 1) {
             bolvanchik.release(mouseX, mouseY);
             return true;
@@ -431,29 +408,6 @@ public class BindManagerScreen extends Screen {
         if (dragging && button == 0) {
             dragMouseY = (int) mouseY;
             dragVisualY = MathHelper.clamp(dragMouseY, LIST_TOP, height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
-            return true;
-        }
-        if (dragPill && button == 1) {
-            // Reorder sort pills
-            int pillStartX = 10;
-            int gap = 4;
-            int x = pillStartX;
-            for (int idx = 0; idx < sortPriorities.size(); idx++) {
-                if (idx == dragPillIndex) continue;
-                int mode = sortPriorities.get(idx);
-                Text label = Text.translatable(SORT_KEYS[mode]);
-                int textW = textRenderer.getWidth(label);
-                int pillW = textW + 12;
-                int centerX = x + pillW / 2;
-                if (mouseX < centerX) {
-                    int modeToMove = sortPriorities.remove(dragPillIndex);
-                    sortPriorities.add(idx, modeToMove);
-                    dragPillIndex = idx;
-                    refreshProfiles();
-                    return true;
-                }
-                x += pillW + gap;
-            }
             return true;
         }
         if (button == 1 && bolvanchik.grabbed) {
@@ -522,7 +476,7 @@ public class BindManagerScreen extends Screen {
 
     // --- Bolvanchik physics object ---
     private static class Bolvanchik {
-        private static final Identifier TEXTURE = Identifier.of("bind-manager", "textures/bolvanchik.png");
+        private static final Identifier TEXTURE = Identifier.of("bind-manager", "bolvanchik");
         private static final String[] FROG_SOUNDS = {
                 "Frog_idle1", "Frog_idle2", "Frog_idle3", "Frog_idle4",
                 "Frog_idle5", "Frog_idle6", "Frog_idle7", "Frog_idle8"
