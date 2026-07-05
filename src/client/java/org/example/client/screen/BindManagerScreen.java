@@ -42,7 +42,6 @@ public class BindManagerScreen extends Screen {
 
     // Sort
     private int sortMode = 0;
-    private boolean showSortPanel;
 
     // Entry drag
     private boolean dragging = false;
@@ -59,7 +58,7 @@ public class BindManagerScreen extends Screen {
     private static final int FOOTER_HEIGHT = 60;
 
     private int getListTop() {
-        return HEADER_H + (showSortPanel ? SORT_PANEL_H + 4 : 4);
+        return HEADER_H + SORT_PANEL_H + 4;
     }
 
     public BindManagerScreen(Screen parent) {
@@ -72,7 +71,7 @@ public class BindManagerScreen extends Screen {
         super.init();
         scrollOffset = 0;
         refreshProfiles();
-        bolvanchik = new Bolvanchik(width - 96, height - 96, 64, 64);
+        bolvanchik = new Bolvanchik(width - 120, 50, 48, 48);
 
         int bottomY = height - 28;
         addDrawableChild(ButtonWidget.builder(
@@ -146,32 +145,23 @@ public class BindManagerScreen extends Screen {
             ctx.drawText(textRenderer, activeText, 8, 6, 0x55FF55, false);
         }
 
-        // Sort clickable text
-        String modeName = Text.translatable(SORT_KEYS[sortMode]).getString();
-        Text sortText = Text.translatable("screen.bindmanager.sort", modeName);
-        int sortX = width - textRenderer.getWidth(sortText) - 8;
-        boolean sortHover = mouseX >= sortX && mouseX < sortX + textRenderer.getWidth(sortText) && mouseY >= 4 && mouseY < 16;
-        ctx.drawText(textRenderer, sortText, sortX, 6, sortHover ? 0xFFFFFF : 0xAAAAAA, false);
+        // Sort panel (always shown)
+        int panelY = HEADER_H + 2;
+        int btnH = 18;
+        int gap = 6;
+        int startX = 10;
+        int totalW = width - 20;
+        int sBtnW = (totalW - gap * 3) / 4;
 
-        // Sort panel (when open)
-        if (showSortPanel) {
-            int panelY = HEADER_H + 2;
-            int btnH = 18;
-            int gap = 6;
-            int startX = 10;
-            int totalW = width - 20;
-            int btnW = (totalW - gap * 3) / 4;
-
-            for (int i = 0; i < 4; i++) {
-                int bx = startX + i * (btnW + gap);
-                boolean sel = i == sortMode;
-                boolean hp = mouseX >= bx && mouseX < bx + btnW && mouseY >= panelY && mouseY < panelY + btnH;
-                int bg = sel ? 0xCC000000 | SORT_COLORS[i] : (hp ? 0x66FFFFFF : 0x33FFFFFF);
-                ctx.fill(bx, panelY, bx + btnW, panelY + btnH, bg);
-                if (sel) ctx.fill(bx, panelY, bx + 2, panelY + btnH, 0xFFFFFFFF);
-                Text label = Text.translatable(SORT_KEYS[i]);
-                ctx.drawCenteredTextWithShadow(textRenderer, label, bx + btnW / 2, panelY + 5, sel ? 0x000000 : 0xFFFFFF);
-            }
+        for (int i = 0; i < 4; i++) {
+            int bx = startX + i * (sBtnW + gap);
+            boolean sel = i == sortMode;
+            boolean hp = mouseX >= bx && mouseX < bx + sBtnW && mouseY >= panelY && mouseY < panelY + btnH;
+            int bg = sel ? 0xFF000000 | SORT_COLORS[i] : (hp ? 0x66FFFFFF : 0x33FFFFFF);
+            ctx.fill(bx, panelY, bx + sBtnW, panelY + btnH, bg);
+            if (sel) ctx.fill(bx, panelY, bx + 2, panelY + btnH, 0xFFFFFFFF);
+            Text label = Text.translatable(SORT_KEYS[i]);
+            ctx.drawCenteredTextWithShadow(textRenderer, label, bx + sBtnW / 2, panelY + 5, 0xFFFFFF);
         }
     }
 
@@ -303,29 +293,19 @@ public class BindManagerScreen extends Screen {
             }
         }
 
-        // Sort text click
-        String modeName = Text.translatable(SORT_KEYS[sortMode]).getString();
-        Text sortText = Text.translatable("screen.bindmanager.sort", modeName);
-        int sortX = width - textRenderer.getWidth(sortText) - 8;
-        if (button == 0 && mouseX >= sortX && mouseX < sortX + textRenderer.getWidth(sortText) && mouseY >= 4 && mouseY < 16) {
-            showSortPanel = !showSortPanel;
-            return true;
-        }
-
         // Sort panel button clicks
-        if (showSortPanel) {
-            int panelY = HEADER_H + 2;
-            int btnH = 18;
-            int gap = 6;
-            int startX = 10;
-            int totalW = width - 20;
-            int btnW = (totalW - gap * 3) / 4;
+        int panelY = HEADER_H + 2;
+        int bH = 18;
+        int gap = 6;
+        int startX = 10;
+        int totalW = width - 20;
+        int sBtnW = (totalW - gap * 3) / 4;
 
-            for (int i = 0; i < 4; i++) {
-                int bx = startX + i * (btnW + gap);
-                if (mouseX >= bx && mouseX < bx + btnW && mouseY >= panelY && mouseY < panelY + btnH) {
+        for (int i = 0; i < 4; i++) {
+            int bx = startX + i * (sBtnW + gap);
+            if (mouseX >= bx && mouseX < bx + sBtnW && mouseY >= panelY && mouseY < panelY + bH) {
+                if (button == 0) {
                     sortMode = i;
-                    showSortPanel = false;
                     refreshProfiles();
                     return true;
                 }
@@ -428,7 +408,6 @@ public class BindManagerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (showSortPanel) return false;
         int maxVisible = getMaxVisible();
         int maxScroll = Math.max(0, profiles.size() - maxVisible);
         scrollOffset = MathHelper.clamp(scrollOffset - (int) verticalAmount, 0, maxScroll);
@@ -439,7 +418,6 @@ public class BindManagerScreen extends Screen {
         BindManagerClient.getConfigStore().loadProfile(name);
         String msg = Text.translatable("screen.bindmanager.loaded", name).getString();
         BindManagerClient.showToast(msg);
-        client.setScreen(null);
     }
 
     private void renameProfile(BindConfig config) {
@@ -544,17 +522,25 @@ public class BindManagerScreen extends Screen {
         }
 
         void playSound() {
-            int idx = (int) (Math.random() * FROG_SOUNDS.length);
-            Identifier soundId = Identifier.of("bind-manager", FROG_SOUNDS[idx]);
-            var client = MinecraftClient.getInstance();
-            if (client != null) {
-                SoundEvent soundEvent = SoundEvent.of(soundId);
-                client.getSoundManager().play(PositionedSoundInstance.master(soundEvent, 1.0F));
+            try {
+                int idx = (int) (Math.random() * FROG_SOUNDS.length);
+                Identifier soundId = Identifier.of("bind-manager", FROG_SOUNDS[idx]);
+                var mc = MinecraftClient.getInstance();
+                if (mc != null && mc.getSoundManager() != null) {
+                    SoundEvent soundEvent = SoundEvent.of(soundId);
+                    mc.getSoundManager().play(PositionedSoundInstance.master(soundEvent, 1.0F));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
         void render(DrawContext ctx) {
-            ctx.drawTexture(RenderLayer::getGuiTextured, TEXTURE, (int) x, (int) y, (int) w, (int) h, 0, 0, (int) w, (int) h, (int) w, (int) h);
+            try {
+                ctx.drawTexture(RenderLayer::getGuiTextured, TEXTURE, (int) x, (int) y, (int) w, (int) h, 0, 0, (int) w, (int) h, (int) w, (int) h);
+            } catch (Exception e) {
+                // silently ignore texture errors
+            }
         }
     }
 
