@@ -24,7 +24,7 @@
   "screen.bindmanager.sort.3": "Color",
   "screen.bindmanager.empty": "No profiles saved yet",
   "screen.bindmanager.color_picker": "Pick Profile Color",
-  "screen.bindmanager.save_changes": "Save Changes",
+  "screen.bindmanager.controls": "Controls",
   "screen.bindmanager.saved": "Saved: \"%s\"",
   "screen.bindmanager.loaded": "Loaded: \"%s\"",
   "screen.bindmanager.active_profile": "Active: %s",

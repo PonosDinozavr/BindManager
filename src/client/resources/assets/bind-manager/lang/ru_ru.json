@@ -20,7 +20,7 @@
   "screen.bindmanager.sort.3": "Цвет",
   "screen.bindmanager.empty": "Профили ещё не сохранены",
   "screen.bindmanager.color_picker": "Выбор цвета профиля",
-  "screen.bindmanager.save_changes": "Сохранить",
+  "screen.bindmanager.controls": "Управление",
   "screen.bindmanager.saved": "Сохранено: \"%s\"",
   "screen.bindmanager.loaded": "Загружено: \"%s\"",
   "screen.bindmanager.active_profile": "Активен: %s",

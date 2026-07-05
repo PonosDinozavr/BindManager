@@ -3,6 +3,7 @@ package org.example.client.screen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.option.KeybindsScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -75,6 +76,11 @@ public class BindManagerScreen extends Screen {
 
         int bottomY = height - 28;
         addDrawableChild(ButtonWidget.builder(
+                Text.translatable("screen.bindmanager.controls"),
+                btn -> client.setScreen(new KeybindsScreen(this, client.options))
+        ).dimensions(width / 2 - 149, bottomY - 30, 70, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
                 Text.translatable("screen.bindmanager.create"),
                 btn -> client.setScreen(new NameInputScreen(
                         this,
@@ -88,7 +94,7 @@ public class BindManagerScreen extends Screen {
                             return null;
                         }
                 ))
-        ).dimensions(width / 2 - 130, bottomY - 30, 80, 20).build());
+        ).dimensions(width / 2 - 73, bottomY - 30, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("screen.bindmanager.filter_fav"),
@@ -96,12 +102,12 @@ public class BindManagerScreen extends Screen {
                     showFavoritesOnly = !showFavoritesOnly;
                     refreshProfiles();
                 }
-        ).dimensions(width / 2 - 40, bottomY - 30, 80, 20).build());
+        ).dimensions(width / 2 + 3, bottomY - 30, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.done"),
                 btn -> close()
-        ).dimensions(width / 2 + 50, bottomY - 30, 80, 20).build());
+        ).dimensions(width / 2 + 79, bottomY - 30, 70, 20).build());
     }
 
     private void refreshProfiles() {
