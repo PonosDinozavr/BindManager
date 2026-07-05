@@ -12,5 +12,13 @@
   "screen.bindmanager.delete.confirm": "Удалить",
   "screen.bindmanager.load": "Загрузить",
   "screen.bindmanager.rename": "Переимен.",
-  "screen.bindmanager.delete": "Удалить"
+  "screen.bindmanager.delete": "Удалить",
+  "screen.bindmanager.color": "Цвет",
+  "screen.bindmanager.sort": "Сортировка: %s",
+  "screen.bindmanager.sort.0": "По умолчанию",
+  "screen.bindmanager.sort.1": "По имени",
+  "screen.bindmanager.sort.2": "Избранные",
+  "screen.bindmanager.sort.3": "По цвету",
+  "screen.bindmanager.empty": "Профили ещё не сохранены",
+  "screen.bindmanager.color_picker": "Выбор цвета профиля"
 }

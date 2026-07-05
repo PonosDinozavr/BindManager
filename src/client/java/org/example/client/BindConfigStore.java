@@ -33,6 +33,7 @@ public class BindConfigStore {
             if (Files.exists(profilesPath)) {
                 try (var stream = Files.list(profilesPath)) {
                     stream.filter(p -> p.toString().endsWith(".json"))
+                            .sorted(Comparator.comparing(p -> p.getFileName().toString()))
                             .forEach(this::loadProfile);
                 }
             }
@@ -60,16 +61,30 @@ public class BindConfigStore {
     }
 
     public void saveProfile(String name) {
+        saveProfile(name, null, false, BindConfig.DEFAULT_COLOR);
+    }
+
+    public void saveProfile(String name, Boolean favorite, int color) {
+        saveProfile(name, null, favorite != null && favorite, color);
+    }
+
+    public void saveProfile(String name, Map<String, String> existingBindings, boolean favorite, int color) {
         BindConfig config = new BindConfig(name);
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client != null && client.options != null) {
-            for (KeyBinding binding : client.options.allKeys) {
-                String boundKey = binding.getBoundKeyTranslationKey();
-                if (boundKey != null && !boundKey.isEmpty() && !"key.keyboard.unknown".equals(boundKey)) {
-                    config.setKeyBinding(binding.getTranslationKey(), boundKey);
+        if (existingBindings != null) {
+            config.getKeyBindings().putAll(existingBindings);
+        } else {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client != null && client.options != null) {
+                for (KeyBinding binding : client.options.allKeys) {
+                    String boundKey = binding.getBoundKeyTranslationKey();
+                    if (boundKey != null && !boundKey.isEmpty() && !"key.keyboard.unknown".equals(boundKey)) {
+                        config.setKeyBinding(binding.getTranslationKey(), boundKey);
+                    }
                 }
             }
         }
+        config.setFavorite(favorite);
+        config.setColor(color);
         while (profiles.containsKey(config.getName())) {
             int counter = 1;
             while (profiles.containsKey(name + " (" + counter + ")")) {
@@ -77,6 +92,11 @@ public class BindConfigStore {
             }
             config.setName(name + " (" + counter + ")");
         }
+        profiles.put(config.getName(), config);
+        saveProfileToFile(config);
+    }
+
+    public void saveExistingProfile(BindConfig config) {
         profiles.put(config.getName(), config);
         saveProfileToFile(config);
     }
@@ -110,6 +130,17 @@ public class BindConfigStore {
             config.setName(newName);
             profiles.put(newName, config);
             saveProfileToFile(config);
+        }
+    }
+
+    public void moveProfile(int fromIndex, int toIndex) {
+        List<BindConfig> list = new ArrayList<>(profiles.values());
+        if (fromIndex < 0 || fromIndex >= list.size() || toIndex < 0 || toIndex >= list.size()) return;
+        BindConfig moved = list.remove(fromIndex);
+        list.add(toIndex, moved);
+        profiles.clear();
+        for (BindConfig c : list) {
+            profiles.put(c.getName(), c);
         }
     }
 

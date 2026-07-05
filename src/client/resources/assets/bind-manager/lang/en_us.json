@@ -16,5 +16,13 @@
   "screen.bindmanager.manage_profiles": "Manage Profiles",
   "screen.bindmanager.load": "Load",
   "screen.bindmanager.rename": "Rename",
-  "screen.bindmanager.delete": "Delete"
+  "screen.bindmanager.delete": "Delete",
+  "screen.bindmanager.color": "Color",
+  "screen.bindmanager.sort": "Sort: %s",
+  "screen.bindmanager.sort.0": "Default",
+  "screen.bindmanager.sort.1": "Name",
+  "screen.bindmanager.sort.2": "Favorites",
+  "screen.bindmanager.sort.3": "Color",
+  "screen.bindmanager.empty": "No profiles saved yet",
+  "screen.bindmanager.color_picker": "Pick Profile Color"
 }
