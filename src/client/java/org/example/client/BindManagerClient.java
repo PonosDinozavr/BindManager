@@ -13,17 +13,15 @@ import net.minecraft.client.gui.screen.option.KeybindsScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.sound.SoundEvent;
 import org.example.client.mixin.client.ScreenAccessor;
 import org.example.client.config.BindConfig;
 import org.example.client.screen.BindManagerScreen;
 import org.example.client.screen.NameInputScreen;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class BindManagerClient implements ClientModInitializer {
@@ -34,10 +32,7 @@ public class BindManagerClient implements ClientModInitializer {
     private static int toastTimer;
     private static final int TOAST_DURATION = 80;
 
-    private static boolean changesDetected;
-    private static boolean shouldShowSaveBtn;
-    private static int changeCheckTimer;
-    private static ButtonWidget saveButton;
+    private static int autoSaveCheckTimer;
 
     @Override
     public void onInitializeClient() {
@@ -55,10 +50,26 @@ public class BindManagerClient implements ClientModInitializer {
                 client.setScreen(new BindManagerScreen(client.currentScreen));
             }
             if (toastTimer > 0) toastTimer--;
+
+            // Auto-save active profile changes while in KeybindsScreen
+            if (client.currentScreen instanceof KeybindsScreen) {
+                autoSaveCheckTimer++;
+                if (autoSaveCheckTimer % 10 == 0) {
+                    String activeName = configStore.getActiveProfileName();
+                    if (activeName != null && hasChanges()) {
+                        BindConfig activeConfig = configStore.getActiveProfile();
+                        if (activeConfig != null) {
+                            activeConfig.getKeyBindings().clear();
+                            activeConfig.getKeyBindings().putAll(getCurrentBindingsSnapshot());
+                            configStore.saveExistingProfile(activeConfig);
+                        }
+                    }
+                }
+            }
         });
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof KeybindsScreen ks) {
+            if (screen instanceof KeybindsScreen) {
                 ScreenAccessor accessor = (ScreenAccessor) screen;
 
                 accessor.invokeAddDrawableChild(
@@ -78,25 +89,6 @@ public class BindManagerClient implements ClientModInitializer {
                         ).dimensions(scaledWidth - 22, 2, 20, 20).build()
                 );
 
-                saveButton = ButtonWidget.builder(
-                        Text.translatable("screen.bindmanager.save_changes"),
-                        btn -> {
-                            String activeName = configStore.getActiveProfileName();
-                            if (activeName != null) {
-                                BindConfig activeConfig = configStore.getActiveProfile();
-                                if (activeConfig != null) {
-                                    activeConfig.getKeyBindings().clear();
-                                    activeConfig.getKeyBindings().putAll(getCurrentBindingsSnapshot());
-                                    configStore.saveExistingProfile(activeConfig);
-                                }
-                                showToast(Text.translatable("screen.bindmanager.saved", activeName).getString());
-                                changesDetected = false;
-                                shouldShowSaveBtn = false;
-                            }
-                        }
-                ).dimensions(scaledWidth - 130, 2, 100, 20).build();
-
-                accessor.invokeAddDrawableChild(new SaveButtonController());
                 accessor.invokeAddDrawableChild(new ToastWidget());
             }
         });
@@ -104,7 +96,7 @@ public class BindManagerClient implements ClientModInitializer {
 
     private static Map<String, String> getCurrentBindingsSnapshot() {
         MinecraftClient client = MinecraftClient.getInstance();
-        Map<String, String> snapshot = new java.util.LinkedHashMap<>();
+        Map<String, String> snapshot = new LinkedHashMap<>();
         if (client != null && client.options != null) {
             for (KeyBinding binding : client.options.allKeys) {
                 String boundKey = binding.getBoundKeyTranslationKey();
@@ -146,49 +138,6 @@ public class BindManagerClient implements ClientModInitializer {
 
     public static BindConfigStore getConfigStore() {
         return configStore;
-    }
-
-    private static class SaveButtonController implements Element, net.minecraft.client.gui.Drawable, Selectable {
-        @Override
-        public void render(DrawContext ctx, int mx, int my, float delta) {
-            changeCheckTimer++;
-            if (changeCheckTimer % 10 == 0) {
-                changesDetected = hasChanges();
-                shouldShowSaveBtn = changesDetected && configStore.getActiveProfileName() != null;
-            }
-            if (shouldShowSaveBtn) {
-                saveButton.render(ctx, mx, my, delta);
-            }
-        }
-
-        @Override
-        public boolean mouseClicked(double mx, double my, int b) {
-            if (shouldShowSaveBtn) return saveButton.mouseClicked(mx, my, b);
-            return false;
-        }
-
-        @Override
-        public boolean mouseReleased(double mx, double my, int b) { return false; }
-        @Override
-        public boolean mouseDragged(double mx, double my, int b, double dx, double dy) { return false; }
-        @Override
-        public boolean mouseScrolled(double mx, double my, double h, double v) { return false; }
-        @Override
-        public boolean keyPressed(int k, int s, int m) { return false; }
-        @Override
-        public boolean keyReleased(int k, int s, int m) { return false; }
-        @Override
-        public boolean charTyped(char c, int m) { return false; }
-        @Override
-        public void setFocused(boolean f) {}
-        @Override
-        public boolean isFocused() { return false; }
-        @Override
-        public boolean isMouseOver(double mx, double my) { return false; }
-        @Override
-        public SelectionType getType() { return SelectionType.NONE; }
-        @Override
-        public void appendNarrations(NarrationMessageBuilder builder) {}
     }
 
     private static class ToastWidget implements Element, net.minecraft.client.gui.Drawable, Selectable {

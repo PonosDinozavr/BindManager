@@ -30,6 +30,9 @@ public class BindManagerScreen extends Screen {
             "screen.bindmanager.sort.0", "screen.bindmanager.sort.1",
             "screen.bindmanager.sort.2", "screen.bindmanager.sort.3"
     };
+    private static final int[] SORT_COLORS = {
+            0xAAAAAA, 0x55FF55, 0xFFFF55, 0x55FFFF
+    };
 
     private final Screen parent;
     private List<BindConfig> profiles;
@@ -39,7 +42,7 @@ public class BindManagerScreen extends Screen {
 
     // Sort
     private int sortMode = 0;
-    private boolean showSortMenu;
+    private boolean showSortPanel;
 
     // Entry drag
     private boolean dragging = false;
@@ -49,12 +52,15 @@ public class BindManagerScreen extends Screen {
 
     // Bolvanchik
     private Bolvanchik bolvanchik;
-    private static final Identifier BOLVANCHIK_TEX = Identifier.of("bind-manager", "bolvanchik");
 
     private static final int ENTRY_HEIGHT = 28;
-    private static final int HEADER_Y = 20;
-    private static final int LIST_TOP = 32;
+    private static final int HEADER_H = 16;
+    private static final int SORT_PANEL_H = 24;
     private static final int FOOTER_HEIGHT = 60;
+
+    private int getListTop() {
+        return HEADER_H + (showSortPanel ? SORT_PANEL_H + 4 : 4);
+    }
 
     public BindManagerScreen(Screen parent) {
         super(Text.translatable("screen.bindmanager.title"));
@@ -119,54 +125,58 @@ public class BindManagerScreen extends Screen {
 
     private int getListLeft() { return 8; }
     private int getListRight() { return width - 8; }
-    private int getMaxVisible() { return (height - LIST_TOP - FOOTER_HEIGHT) / ENTRY_HEIGHT; }
+    private int getMaxVisible() { return (height - getListTop() - FOOTER_HEIGHT) / ENTRY_HEIGHT; }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
 
         bolvanchik.update(width, height);
-        renderHeader(context);
+        renderHeader(context, mouseX, mouseY);
         renderProfileList(context, mouseX, mouseY, delta);
         bolvanchik.render(context);
     }
 
-    private void renderHeader(DrawContext ctx) {
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, 0xFFFFFF);
+    private void renderHeader(DrawContext ctx, int mouseX, int mouseY) {
+        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 6, 0xFFFFFF);
 
         String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
         if (activeName != null) {
             Text activeText = Text.translatable("screen.bindmanager.active_profile", activeName);
-            ctx.drawText(textRenderer, activeText, 8, 8, 0x55FF55, false);
+            ctx.drawText(textRenderer, activeText, 8, 6, 0x55FF55, false);
         }
 
         // Sort clickable text
-        String sortLabel = Text.translatable(SORT_KEYS[sortMode]).getString();
-        Text sortText = Text.translatable("screen.bindmanager.sort", sortLabel);
+        String modeName = Text.translatable(SORT_KEYS[sortMode]).getString();
+        Text sortText = Text.translatable("screen.bindmanager.sort", modeName);
         int sortX = width - textRenderer.getWidth(sortText) - 8;
-        int sortY = 8;
-        ctx.drawText(textRenderer, sortText, sortX, sortY, 0xAAAAAA, false);
+        boolean sortHover = mouseX >= sortX && mouseX < sortX + textRenderer.getWidth(sortText) && mouseY >= 4 && mouseY < 16;
+        ctx.drawText(textRenderer, sortText, sortX, 6, sortHover ? 0xFFFFFF : 0xAAAAAA, false);
 
-        // Draw sort popup menu
-        if (showSortMenu) {
-            int menuW = 90;
-            int itemH = 12;
-            int mX = sortX;
-            int mY = sortY + 12;
-            ctx.fill(mX, mY, mX + menuW, mY + 4 * itemH + 2, 0xCC222222);
-            ctx.fill(mX, mY, mX + menuW, mY + 4 * itemH + 2, 0xCC333333);
+        // Sort panel (when open)
+        if (showSortPanel) {
+            int panelY = HEADER_H + 2;
+            int btnH = 18;
+            int gap = 6;
+            int startX = 10;
+            int totalW = width - 20;
+            int btnW = (totalW - gap * 3) / 4;
+
             for (int i = 0; i < 4; i++) {
-                int iy = mY + 1 + i * itemH;
+                int bx = startX + i * (btnW + gap);
                 boolean sel = i == sortMode;
-                if (sel) ctx.fill(mX, iy, mX + menuW, iy + itemH, 0x8800AA00);
-                Text itemText = Text.translatable(SORT_KEYS[i]);
-                ctx.drawText(textRenderer, itemText, mX + 3, iy + 1, sel ? 0xFFFFFF : 0xAAAAAA, false);
+                boolean hp = mouseX >= bx && mouseX < bx + btnW && mouseY >= panelY && mouseY < panelY + btnH;
+                int bg = sel ? 0xCC000000 | SORT_COLORS[i] : (hp ? 0x66FFFFFF : 0x33FFFFFF);
+                ctx.fill(bx, panelY, bx + btnW, panelY + btnH, bg);
+                if (sel) ctx.fill(bx, panelY, bx + 2, panelY + btnH, 0xFFFFFFFF);
+                Text label = Text.translatable(SORT_KEYS[i]);
+                ctx.drawCenteredTextWithShadow(textRenderer, label, bx + btnW / 2, panelY + 5, sel ? 0x000000 : 0xFFFFFF);
             }
         }
     }
 
     private void renderProfileList(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        int startY = LIST_TOP;
+        int startY = getListTop();
         int maxVisible = getMaxVisible();
         int listLeft = getListLeft();
         int listRight = getListRight();
@@ -243,7 +253,7 @@ public class BindManagerScreen extends Screen {
         }
 
         if (profiles.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.bindmanager.empty"), width / 2, LIST_TOP + 40, 0x888888);
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.bindmanager.empty"), width / 2, getListTop() + 40, 0x888888);
         }
 
         // Draw entry drag ghost
@@ -293,38 +303,37 @@ public class BindManagerScreen extends Screen {
             }
         }
 
-        // Sort popup menu clicks
-        int sortX = width - textRenderer.getWidth(Text.translatable("screen.bindmanager.sort", Text.translatable(SORT_KEYS[sortMode]).getString())) - 8;
-        int sortY = 8;
-        int sortTextW = textRenderer.getWidth(Text.translatable("screen.bindmanager.sort", Text.translatable(SORT_KEYS[sortMode]).getString()));
-
-        if (showSortMenu) {
-            int menuW = 90;
-            int itemH = 12;
-            int mX = sortX;
-            int mY = sortY + 12;
-            boolean clickedItem = false;
-            for (int i = 0; i < 4; i++) {
-                int iy = mY + 1 + i * itemH;
-                if (mouseX >= mX && mouseX < mX + menuW && mouseY >= iy && mouseY < iy + itemH) {
-                    sortMode = i;
-                    refreshProfiles();
-                    clickedItem = true;
-                    break;
-                }
-            }
-            showSortMenu = false;
-            if (clickedItem) return true;
-        }
-
         // Sort text click
-        if (button == 0 && mouseX >= sortX && mouseX < sortX + sortTextW && mouseY >= sortY && mouseY < sortY + 10) {
-            showSortMenu = true;
+        String modeName = Text.translatable(SORT_KEYS[sortMode]).getString();
+        Text sortText = Text.translatable("screen.bindmanager.sort", modeName);
+        int sortX = width - textRenderer.getWidth(sortText) - 8;
+        if (button == 0 && mouseX >= sortX && mouseX < sortX + textRenderer.getWidth(sortText) && mouseY >= 4 && mouseY < 16) {
+            showSortPanel = !showSortPanel;
             return true;
         }
 
+        // Sort panel button clicks
+        if (showSortPanel) {
+            int panelY = HEADER_H + 2;
+            int btnH = 18;
+            int gap = 6;
+            int startX = 10;
+            int totalW = width - 20;
+            int btnW = (totalW - gap * 3) / 4;
+
+            for (int i = 0; i < 4; i++) {
+                int bx = startX + i * (btnW + gap);
+                if (mouseX >= bx && mouseX < bx + btnW && mouseY >= panelY && mouseY < panelY + btnH) {
+                    sortMode = i;
+                    showSortPanel = false;
+                    refreshProfiles();
+                    return true;
+                }
+            }
+        }
+
         // Profile list
-        int startY = LIST_TOP;
+        int startY = getListTop();
         int maxVisible = getMaxVisible();
         int listLeft = getListLeft();
         int listRight = getListRight();
@@ -380,7 +389,7 @@ public class BindManagerScreen extends Screen {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (dragging && button == 0) {
             dragging = false;
-            int startY = LIST_TOP;
+            int startY = getListTop();
             int dropIndex = MathHelper.clamp((int) ((mouseY - startY) / ENTRY_HEIGHT) + scrollOffset, 0, profiles.size() - 1);
             if (dropIndex != dragIndex && dragIndex >= 0 && dragIndex < profiles.size()) {
                 BindConfigStore store = BindManagerClient.getConfigStore();
@@ -407,7 +416,7 @@ public class BindManagerScreen extends Screen {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (dragging && button == 0) {
             dragMouseY = (int) mouseY;
-            dragVisualY = MathHelper.clamp(dragMouseY, LIST_TOP, height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
+            dragVisualY = MathHelper.clamp(dragMouseY, getListTop(), height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
             return true;
         }
         if (button == 1 && bolvanchik.grabbed) {
@@ -419,6 +428,7 @@ public class BindManagerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (showSortPanel) return false;
         int maxVisible = getMaxVisible();
         int maxScroll = Math.max(0, profiles.size() - maxVisible);
         scrollOffset = MathHelper.clamp(scrollOffset - (int) verticalAmount, 0, maxScroll);
