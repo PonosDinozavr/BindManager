@@ -28,6 +28,7 @@ public class NameInputScreen extends Screen {
         textField = new TextFieldWidget(textRenderer, width / 2 - 100, height / 2 - 20, 200, 20, fieldLabel);
         textField.setMaxLength(32);
         addSelectableChild(textField);
+        setInitialFocus(textField);
 
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.done"),
@@ -62,10 +63,18 @@ public class NameInputScreen extends Screen {
             confirm();
             return true;
         }
-        if (textField.keyPressed(keyCode, scanCode, modifiers)) {
+        if (textField != null && textField.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (textField != null && textField.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
     }
 
     @Override
