@@ -17,7 +17,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "org.example.client.changeofcontrolClient"
+      "org.example.client.BindManagerClient"
     ]
   },
   "mixins": [
