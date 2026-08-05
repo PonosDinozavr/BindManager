@@ -38,13 +38,13 @@ public class ConfirmDeleteScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.centeredText(font, title, width / 2, height / 2 - 40, 0xFFFFFF);
+        graphics.centeredText(font, title, width / 2, height / 2 - 40, 0xFFFFFFFF);
         graphics.centeredText(
                 font,
                 Component.translatable("screen.changeofcontrol.delete.warning", profileName),
                 width / 2,
                 height / 2 - 20,
-                0xFF5555
+                0xFFFF5555
         );
     }
 

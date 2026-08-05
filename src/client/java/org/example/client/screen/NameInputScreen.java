@@ -55,8 +55,8 @@ public class NameInputScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.centeredText(font, title, width / 2, height / 2 - 50, 0xFFFFFF);
-        graphics.text(font, fieldLabel, width / 2 - 100, height / 2 - 40, 0xA0A0A0);
+        graphics.centeredText(font, title, width / 2, height / 2 - 50, 0xFFFFFFFF);
+        graphics.text(font, fieldLabel, width / 2 - 100, height / 2 - 40, 0xFFA0A0A0);
     }
 
     @Override
