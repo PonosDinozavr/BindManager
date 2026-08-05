@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 
@@ -30,6 +31,7 @@ public class NameInputScreen extends Screen {
         textField = new EditBox(font, width / 2 - 100, height / 2 - 20, 200, 20, fieldLabel);
         textField.setMaxLength(32);
         addRenderableWidget(textField);
+        setInitialFocus(textField);
 
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.done"),
@@ -64,10 +66,18 @@ public class NameInputScreen extends Screen {
             confirm();
             return true;
         }
-        if (textField.keyPressed(event)) {
+        if (textField != null && textField.keyPressed(event)) {
             return true;
         }
         return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        if (textField != null && textField.charTyped(event)) {
+            return true;
+        }
+        return super.charTyped(event);
     }
 
     @Override
