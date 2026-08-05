@@ -1,9 +1,10 @@
 package org.example.client;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import org.example.client.config.BindConfig;
 
 import java.io.IOException;
@@ -18,8 +19,8 @@ public class BindConfigStore {
     private final Map<String, BindConfig> profiles = new LinkedHashMap<>();
     private String activeProfileName;
 
-    public BindConfigStore(MinecraftClient client) {
-        this.profilesPath = client.runDirectory.toPath().resolve("config").resolve(PROFILES_DIR);
+    public BindConfigStore(Minecraft client) {
+        this.profilesPath = client.gameDirectory.toPath().resolve("config").resolve(PROFILES_DIR);
         try {
             Files.createDirectories(profilesPath);
         } catch (IOException e) {
@@ -74,12 +75,12 @@ public class BindConfigStore {
         if (existingBindings != null) {
             config.getKeyBindings().putAll(existingBindings);
         } else {
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client != null && client.options != null) {
-                for (KeyBinding binding : client.options.allKeys) {
-                    String boundKey = binding.getBoundKeyTranslationKey();
+                for (KeyMapping binding : client.options.keyMappings) {
+                    String boundKey = getBoundKeyTranslationKey(binding);
                     if (boundKey != null && !boundKey.isEmpty() && !"key.keyboard.unknown".equals(boundKey)) {
-                        config.setKeyBinding(binding.getTranslationKey(), boundKey);
+                        config.setKeyBinding(binding.getName(), boundKey);
                     }
                 }
             }
@@ -161,18 +162,18 @@ public class BindConfigStore {
         BindConfig config = profiles.get(name);
         if (config == null) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.options == null) return;
 
-        GameOptions options = client.options;
-        for (KeyBinding binding : options.allKeys) {
-            String boundKeyStr = config.getBoundKey(binding.getTranslationKey());
+        Options options = client.options;
+        for (KeyMapping binding : options.keyMappings) {
+            String boundKeyStr = config.getBoundKey(binding.getName());
             if (!boundKeyStr.isEmpty()) {
-                InputUtil.Key key = InputUtil.fromTranslationKey(boundKeyStr);
-                binding.setBoundKey(key);
+                InputConstants.Key key = InputConstants.getKey(boundKeyStr);
+                binding.setKey(key);
             }
         }
-        options.write();
+        options.save();
         activeProfileName = name;
     }
 
@@ -190,5 +191,9 @@ public class BindConfigStore {
 
     public void refresh() {
         loadAllProfiles();
+    }
+
+    static String getBoundKeyTranslationKey(KeyMapping binding) {
+        return KeyMappingHelper.getBoundKeyOf(binding).getName();
     }
 }

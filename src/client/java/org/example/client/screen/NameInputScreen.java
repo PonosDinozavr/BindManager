@@ -1,20 +1,22 @@
 package org.example.client.screen;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.Component;
 
 import java.util.function.Function;
 
 public class NameInputScreen extends Screen {
     private final Screen parent;
-    private final Text fieldLabel;
+    private final Component fieldLabel;
     private final Function<String, Void> callback;
-    private TextFieldWidget textField;
+    private EditBox textField;
 
-    public NameInputScreen(Screen parent, Text title, Text fieldLabel, Function<String, Void> callback) {
+    public NameInputScreen(Screen parent, Component title, Component fieldLabel, Function<String, Void> callback) {
         super(title);
         this.parent = parent;
         this.fieldLabel = fieldLabel;
@@ -25,51 +27,51 @@ public class NameInputScreen extends Screen {
     protected void init() {
         super.init();
 
-        textField = new TextFieldWidget(textRenderer, width / 2 - 100, height / 2 - 20, 200, 20, fieldLabel);
+        textField = new EditBox(font, width / 2 - 100, height / 2 - 20, 200, 20, fieldLabel);
         textField.setMaxLength(32);
-        addSelectableChild(textField);
+        addRenderableWidget(textField);
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("gui.done"),
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.done"),
                 btn -> confirm()
-        ).dimensions(width / 2 - 100, height / 2 + 10, 95, 20).build());
+        ).bounds(width / 2 - 100, height / 2 + 10, 95, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("gui.cancel"),
-                btn -> close()
-        ).dimensions(width / 2 + 5, height / 2 + 10, 95, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.cancel"),
+                btn -> onClose()
+        ).bounds(width / 2 + 5, height / 2 + 10, 95, 20).build());
     }
 
     private void confirm() {
-        String name = textField.getText().trim();
+        String name = textField.getValue().trim();
         if (!name.isEmpty()) {
             callback.apply(name);
-            close();
+            onClose();
         }
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 50, 0xFFFFFF);
-        context.drawTextWithShadow(textRenderer, fieldLabel, width / 2 - 100, height / 2 - 40, 0xA0A0A0);
-        textField.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        graphics.centeredText(font, title, width / 2, height / 2 - 50, 0xFFFFFF);
+        graphics.text(font, fieldLabel, width / 2 - 100, height / 2 - 40, 0xA0A0A0);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 257 || keyCode == 335) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
+        if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
             confirm();
             return true;
         }
-        if (textField.keyPressed(keyCode, scanCode, modifiers)) {
+        if (textField.keyPressed(event)) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public void close() {
-        client.setScreen(parent);
+    public void onClose() {
+        minecraft.setScreen(parent);
     }
 }

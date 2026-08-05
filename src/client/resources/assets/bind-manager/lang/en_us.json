@@ -1,6 +1,6 @@
 {
   "key.bindmanager.open_manager": "Open Change of Control",
-  "category.bindmanager": "Change of Control",
+  "key.category.bindmanager.category": "Change of Control",
   "screen.bindmanager.title": "Change of Control",
   "screen.bindmanager.create": "Create New",
   "screen.bindmanager.create.title": "Create Profile",

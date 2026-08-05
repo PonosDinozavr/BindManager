@@ -1,6 +1,6 @@
 {
   "key.bindmanager.open_manager": "Открыть смену управления",
-  "category.bindmanager": "Смена управления",
+  "key.category.bindmanager.category": "Смена управления",
   "screen.bindmanager.title": "Смена управления",
   "screen.bindmanager.create": "Создать",
   "screen.bindmanager.create.title": "Создание профиля",

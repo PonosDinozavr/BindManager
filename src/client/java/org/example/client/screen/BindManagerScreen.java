@@ -1,12 +1,13 @@
 package org.example.client.screen;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.option.KeybindsScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import org.example.client.BindManagerClient;
 import org.example.client.BindConfigStore;
 import org.example.client.config.BindConfig;
@@ -55,7 +56,7 @@ public class BindManagerScreen extends Screen {
     }
 
     public BindManagerScreen(Screen parent) {
-        super(Text.translatable("screen.bindmanager.title"));
+        super(Component.translatable("screen.bindmanager.title"));
         this.parent = parent;
     }
 
@@ -66,17 +67,17 @@ public class BindManagerScreen extends Screen {
         refreshProfiles();
 
         int bottomY = height - 28;
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.controls"),
-                btn -> client.setScreen(new KeybindsScreen(this, client.options))
-        ).dimensions(width / 2 - 149, bottomY - 30, 70, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("screen.bindmanager.controls"),
+                btn -> minecraft.setScreen(new KeyBindsScreen(this, minecraft.options))
+        ).bounds(width / 2 - 149, bottomY - 30, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.create"),
-                btn -> client.setScreen(new NameInputScreen(
+        addRenderableWidget(Button.builder(
+                Component.translatable("screen.bindmanager.create"),
+                btn -> minecraft.setScreen(new NameInputScreen(
                         this,
-                        Text.translatable("screen.bindmanager.create.title"),
-                        Text.translatable("screen.bindmanager.create.field"),
+                        Component.translatable("screen.bindmanager.create.title"),
+                        Component.translatable("screen.bindmanager.create.field"),
                         name -> {
                             if (!name.isEmpty()) {
                                 BindManagerClient.getConfigStore().saveProfile(name);
@@ -85,20 +86,20 @@ public class BindManagerScreen extends Screen {
                             return null;
                         }
                 ))
-        ).dimensions(width / 2 - 73, bottomY - 30, 70, 20).build());
+        ).bounds(width / 2 - 73, bottomY - 30, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.filter_fav"),
+        addRenderableWidget(Button.builder(
+                Component.translatable("screen.bindmanager.filter_fav"),
                 btn -> {
                     showFavoritesOnly = !showFavoritesOnly;
                     refreshProfiles();
                 }
-        ).dimensions(width / 2 + 3, bottomY - 30, 70, 20).build());
+        ).bounds(width / 2 + 3, bottomY - 30, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("gui.done"),
-                btn -> close()
-        ).dimensions(width / 2 + 79, bottomY - 30, 70, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.done"),
+                btn -> onClose()
+        ).bounds(width / 2 + 79, bottomY - 30, 70, 20).build());
     }
 
     private void refreshProfiles() {
@@ -124,20 +125,20 @@ public class BindManagerScreen extends Screen {
     private int getMaxVisible() { return (height - getListTop() - FOOTER_HEIGHT) / ENTRY_HEIGHT; }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-        renderHeader(context, mouseX, mouseY);
-        renderProfileList(context, mouseX, mouseY, delta);
+        renderHeader(graphics, mouseX, mouseY);
+        renderProfileList(graphics, mouseX, mouseY, delta);
     }
 
-    private void renderHeader(DrawContext ctx, int mouseX, int mouseY) {
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 6, 0xFFFFFF);
+    private void renderHeader(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
+        ctx.centeredText(font, title, width / 2, 6, 0xFFFFFF);
 
         String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
         if (activeName != null) {
-            Text activeText = Text.translatable("screen.bindmanager.active_profile", activeName);
-            ctx.drawText(textRenderer, activeText, 8, 6, 0x55FF55, false);
+            Component activeText = Component.translatable("screen.bindmanager.active_profile", activeName);
+            ctx.text(font, activeText, 8, 6, 0x55FF55);
         }
 
         // Sort panel (always shown)
@@ -155,12 +156,12 @@ public class BindManagerScreen extends Screen {
             int bg = sel ? 0xFF000000 | SORT_COLORS[i] : (hp ? 0x66FFFFFF : 0x33FFFFFF);
             ctx.fill(bx, panelY, bx + sBtnW, panelY + btnH, bg);
             if (sel) ctx.fill(bx, panelY, bx + 2, panelY + btnH, 0xFFFFFFFF);
-            Text label = Text.translatable(SORT_KEYS[i]);
-            ctx.drawCenteredTextWithShadow(textRenderer, label, bx + sBtnW / 2, panelY + 5, 0xFFFFFF);
+            Component label = Component.translatable(SORT_KEYS[i]);
+            ctx.centeredText(font, label, bx + sBtnW / 2, panelY + 5, 0xFFFFFF);
         }
     }
 
-    private void renderProfileList(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    private void renderProfileList(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         int startY = getListTop();
         int maxVisible = getMaxVisible();
         int listLeft = getListLeft();
@@ -202,19 +203,19 @@ public class BindManagerScreen extends Screen {
             int nameColor = config.isFavorite() ? 0xFFFF55 : 0xFFFFFF;
             String displayName = config.getName();
             if (config.isFavorite()) {
-                displayName = Formatting.YELLOW + "\u2605 " + Formatting.RESET + displayName;
+                displayName = ChatFormatting.YELLOW + "\u2605 " + ChatFormatting.RESET + displayName;
             }
 
             // Draw active indicator
             String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
             boolean isActive = config.getName().equals(activeName);
             if (isActive) {
-                ctx.drawText(textRenderer, Text.literal("> "), nameX - 10, y + 6, 0x55FF55, false);
+                ctx.text(font, Component.literal("> "), nameX - 10, y + 6, 0x55FF55);
                 ctx.fill(listLeft + 3, y, listLeft + 5, y + ENTRY_HEIGHT - 1, 0xFF55FF55);
             }
 
             float scale = delta;
-            ctx.drawText(textRenderer, Text.literal(displayName), nameX + 2, y + 6, nameColor, false);
+            ctx.text(font, Component.literal(displayName), nameX + 2, y + 6, nameColor);
 
             int btnW = 38;
             int gap = 3;
@@ -238,7 +239,7 @@ public class BindManagerScreen extends Screen {
         }
 
         if (profiles.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.bindmanager.empty"), width / 2, getListTop() + 40, 0x888888);
+            ctx.centeredText(font, Component.translatable("screen.bindmanager.empty"), width / 2, getListTop() + 40, 0x888888);
         }
 
         // Draw entry drag ghost
@@ -247,35 +248,39 @@ public class BindManagerScreen extends Screen {
             int ghostY = dragVisualY;
             ctx.fill(listLeft, ghostY, listRight, ghostY + ENTRY_HEIGHT - 1, 0x66AAFF88);
             ctx.fill(listLeft, ghostY, listLeft + 3, ghostY + ENTRY_HEIGHT - 1, 0xFF55FF55);
-            ctx.drawText(textRenderer, Text.literal("\u2261 " + ghostConfig.getName()), listLeft + 8, ghostY + 6, 0xFFFFFF, false);
+            ctx.text(font, Component.literal("\u2261 " + ghostConfig.getName()), listLeft + 8, ghostY + 6, 0xFFFFFF);
         }
 
         // Scroll indicator
         if (profiles.size() > maxVisible) {
             String scrollText = (scrollOffset + 1) + "-" + Math.min(scrollOffset + maxVisible, profiles.size()) + "/" + profiles.size();
-            ctx.drawText(textRenderer, Text.literal(scrollText), width / 2 - textRenderer.getWidth(scrollText) / 2, height - 30, 0x888888, false);
+            ctx.text(font, Component.literal(scrollText), width / 2 - font.width(scrollText) / 2, height - 30, 0x888888);
         }
     }
 
-    private void drawHoverBtn(DrawContext ctx, int x, int y, int w, String langKey, int color, int mx, int my) {
+    private void drawHoverBtn(GuiGraphicsExtractor ctx, int x, int y, int w, String langKey, int color, int mx, int my) {
         boolean hovered = mx >= x && mx < x + w && my >= y && my < y + 14;
         int bg = hovered ? (0x88 << 24) : 0x22FFFFFF;
         ctx.fill(x - 1, y - 1, x + w + 1, y + 13, bg);
         if (hovered) ctx.fill(x - 1, y - 1, x + w + 1, y, 0xFF000000 | color);
-        ctx.drawText(textRenderer, Text.translatable(langKey), x + 2, y + 2, hovered ? 0xFFFFFF : color, false);
+        ctx.text(font, Component.translatable(langKey), x + 2, y + 2, hovered ? 0xFFFFFF : color);
     }
 
-    private void drawHoverBtnLiteral(DrawContext ctx, int x, int y, int w, String literal, int color, int mx, int my) {
+    private void drawHoverBtnLiteral(GuiGraphicsExtractor ctx, int x, int y, int w, String literal, int color, int mx, int my) {
         boolean hovered = mx >= x && mx < x + w && my >= y && my < y + 14;
         int bg = hovered ? (0x88 << 24) : 0x22FFFFFF;
         ctx.fill(x - 1, y - 1, x + w + 1, y + 13, bg);
         if (hovered) ctx.fill(x - 1, y - 1, x + w + 1, y, 0xFF000000 | color);
-        ctx.drawText(textRenderer, Text.literal(literal), x + 2, y + 2, hovered ? 0xFFFFFF : color, false);
+        ctx.text(font, Component.literal(literal), x + 2, y + 2, hovered ? 0xFFFFFF : color);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (super.mouseClicked(mouseX, mouseY, button)) return true;
+    public boolean mouseClicked(MouseButtonEvent event, boolean focused) {
+        if (super.mouseClicked(event, focused)) return true;
+
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
 
         // Sort panel button clicks
         int panelY = HEADER_H + 2;
@@ -350,11 +355,11 @@ public class BindManagerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (dragging && button == 0) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (dragging && event.button() == 0) {
             dragging = false;
             int startY = getListTop();
-            int dropIndex = MathHelper.clamp((int) ((mouseY - startY) / ENTRY_HEIGHT) + scrollOffset, 0, profiles.size() - 1);
+            int dropIndex = Mth.clamp((int) ((event.y() - startY) / ENTRY_HEIGHT) + scrollOffset, 0, profiles.size() - 1);
             if (dropIndex != dragIndex && dragIndex >= 0 && dragIndex < profiles.size()) {
                 BindConfigStore store = BindManagerClient.getConfigStore();
                 BindConfig dragged = profiles.get(dragIndex);
@@ -369,24 +374,24 @@ public class BindManagerScreen extends Screen {
             dragIndex = -1;
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (dragging && button == 0) {
-            dragMouseY = (int) mouseY;
-            dragVisualY = MathHelper.clamp(dragMouseY, getListTop(), height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
+    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        if (dragging && event.button() == 0) {
+            dragMouseY = (int) event.y();
+            dragVisualY = Mth.clamp(dragMouseY, getListTop(), height - FOOTER_HEIGHT) - ENTRY_HEIGHT / 2;
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        return super.mouseDragged(event, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         int maxVisible = getMaxVisible();
         int maxScroll = Math.max(0, profiles.size() - maxVisible);
-        scrollOffset = MathHelper.clamp(scrollOffset - (int) verticalAmount, 0, maxScroll);
+        scrollOffset = Mth.clamp(scrollOffset - (int) verticalAmount, 0, maxScroll);
         return true;
     }
 
@@ -396,10 +401,10 @@ public class BindManagerScreen extends Screen {
 
     private void renameProfile(BindConfig config) {
         String currentName = config.getName();
-        client.setScreen(new NameInputScreen(
+        minecraft.setScreen(new NameInputScreen(
                 this,
-                Text.translatable("screen.bindmanager.rename.title"),
-                Text.translatable("screen.bindmanager.rename.field"),
+                Component.translatable("screen.bindmanager.rename.title"),
+                Component.translatable("screen.bindmanager.rename.field"),
                 newName -> {
                     if (!newName.isEmpty() && !newName.equals(currentName)) {
                         BindManagerClient.getConfigStore().renameProfile(currentName, newName);
@@ -412,7 +417,7 @@ public class BindManagerScreen extends Screen {
 
     private void deleteProfile(BindConfig config) {
         String name = config.getName();
-        client.setScreen(new ConfirmDeleteScreen(
+        minecraft.setScreen(new ConfirmDeleteScreen(
                 this, name,
                 () -> {
                     BindManagerClient.getConfigStore().deleteProfile(name);
@@ -428,12 +433,12 @@ public class BindManagerScreen extends Screen {
     }
 
     private void openColorPicker(BindConfig config) {
-        client.setScreen(new ColorPickerScreen(this, config));
+        minecraft.setScreen(new ColorPickerScreen(this, config));
     }
 
     @Override
-    public void close() {
-        client.setScreen(parent);
+    public void onClose() {
+        minecraft.setScreen(parent);
     }
 
     // --- Color picker ---
@@ -442,7 +447,7 @@ public class BindManagerScreen extends Screen {
         private final BindConfig config;
 
         public ColorPickerScreen(Screen parent, BindConfig config) {
-            super(Text.translatable("screen.bindmanager.color_picker"));
+            super(Component.translatable("screen.bindmanager.color_picker"));
             this.parent = parent;
             this.config = config;
         }
@@ -450,16 +455,16 @@ public class BindManagerScreen extends Screen {
         @Override
         protected void init() {
             super.init();
-            addDrawableChild(ButtonWidget.builder(
-                    Text.translatable("gui.cancel"),
-                    btn -> close()
-            ).dimensions(width / 2 - 100, height / 2 + 50, 200, 20).build());
+            addRenderableWidget(Button.builder(
+                    Component.translatable("gui.cancel"),
+                    btn -> onClose()
+            ).bounds(width / 2 - 100, height / 2 + 50, 200, 20).build());
         }
 
         @Override
-        public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-            super.render(context, mouseX, mouseY, delta);
-            context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 60, 0xFFFFFF);
+        public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            super.extractRenderState(graphics, mouseX, mouseY, delta);
+            graphics.centeredText(font, title, width / 2, height / 2 - 60, 0xFFFFFF);
 
             int cols = 5;
             int cellSize = 24;
@@ -478,14 +483,16 @@ public class BindManagerScreen extends Screen {
                 boolean hovered = mouseX >= x && mouseX < x + cellSize && mouseY >= y && mouseY < y + cellSize;
 
                 int borderColor = selected ? 0xFFFFFF : (hovered ? 0xAAAAAA : 0x555555);
-                context.fill(x - 1, y - 1, x + cellSize + 1, y + cellSize + 1, 0xFF000000 | borderColor);
-                context.fill(x, y, x + cellSize, y + cellSize, 0xFF000000 | PALETTE[i]);
+                graphics.fill(x - 1, y - 1, x + cellSize + 1, y + cellSize + 1, 0xFF000000 | borderColor);
+                graphics.fill(x, y, x + cellSize, y + cellSize, 0xFF000000 | PALETTE[i]);
             }
         }
 
         @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (button == 0) {
+        public boolean mouseClicked(MouseButtonEvent event, boolean focused) {
+            if (event.button() == 0) {
+                double mouseX = event.x();
+                double mouseY = event.y();
                 int cols = 5;
                 int cellSize = 24;
                 int gap = 4;
@@ -502,17 +509,17 @@ public class BindManagerScreen extends Screen {
                     if (mouseX >= x && mouseX < x + cellSize && mouseY >= y && mouseY < y + cellSize) {
                         config.setColor(PALETTE[i]);
                         BindManagerClient.getConfigStore().saveExistingProfile(config);
-                        close();
+                        onClose();
                         return true;
                     }
                 }
             }
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(event, focused);
         }
 
         @Override
-        public void close() {
-            client.setScreen(parent);
+        public void onClose() {
+            minecraft.setScreen(parent);
         }
     }
 }

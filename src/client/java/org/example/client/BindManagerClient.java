@@ -1,17 +1,18 @@
 package org.example.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.option.KeybindsScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import org.example.client.mixin.client.ScreenAccessor;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.example.client.config.BindConfig;
+import org.example.client.mixin.client.ScreenAccessor;
 import org.example.client.screen.BindManagerScreen;
 import org.example.client.screen.NameInputScreen;
 import org.lwjgl.glfw.GLFW;
@@ -20,29 +21,32 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class BindManagerClient implements ClientModInitializer {
-    private static KeyBinding openManagerKey;
+    private static final KeyMapping.Category CATEGORY =
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath("bindmanager", "category"));
+
+    private static KeyMapping openManagerKey;
     private static BindConfigStore configStore;
 
     private static int autoSaveCheckTimer;
 
     @Override
     public void onInitializeClient() {
-        configStore = new BindConfigStore(MinecraftClient.getInstance());
+        configStore = new BindConfigStore(Minecraft.getInstance());
 
-        openManagerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        openManagerKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.bindmanager.open_manager",
-                InputUtil.Type.KEYSYM,
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_BRACKET,
-                "category.bindmanager"
+                CATEGORY
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (openManagerKey.wasPressed()) {
-                client.setScreen(new BindManagerScreen(client.currentScreen));
+            while (openManagerKey.consumeClick()) {
+                client.setScreen(new BindManagerScreen(client.screen));
             }
 
-            // Auto-save active profile changes while in KeybindsScreen
-            if (client.currentScreen instanceof KeybindsScreen) {
+            // Auto-save active profile changes while in KeyBindsScreen
+            if (client.screen instanceof KeyBindsScreen) {
                 autoSaveCheckTimer++;
                 if (autoSaveCheckTimer % 10 == 0) {
                     String activeName = configStore.getActiveProfileName();
@@ -59,16 +63,16 @@ public class BindManagerClient implements ClientModInitializer {
         });
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof KeybindsScreen) {
+            if (screen instanceof KeyBindsScreen) {
                 ScreenAccessor accessor = (ScreenAccessor) screen;
 
-                accessor.invokeAddDrawableChild(
-                        ButtonWidget.builder(
-                                Text.literal("+"),
+                accessor.invokeAddRenderableWidget(
+                        Button.builder(
+                                Component.literal("+"),
                                 btn -> client.setScreen(new NameInputScreen(
                                         screen,
-                                        Text.translatable("screen.bindmanager.save_profile.title"),
-                                        Text.translatable("screen.bindmanager.save_profile.field"),
+                                        Component.translatable("screen.bindmanager.save_profile.title"),
+                                        Component.translatable("screen.bindmanager.save_profile.field"),
                                         name -> {
                                             if (!name.isEmpty()) {
                                                 configStore.saveProfile(name);
@@ -76,20 +80,20 @@ public class BindManagerClient implements ClientModInitializer {
                                             return null;
                                         }
                                 ))
-                        ).dimensions(scaledWidth - 22, 2, 20, 20).build()
+                        ).bounds(scaledWidth - 22, 2, 20, 20).build()
                 );
             }
         });
     }
 
     private static Map<String, String> getCurrentBindingsSnapshot() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         Map<String, String> snapshot = new LinkedHashMap<>();
         if (client != null && client.options != null) {
-            for (KeyBinding binding : client.options.allKeys) {
-                String boundKey = binding.getBoundKeyTranslationKey();
+            for (KeyMapping binding : client.options.keyMappings) {
+                String boundKey = BindConfigStore.getBoundKeyTranslationKey(binding);
                 if (boundKey != null && !boundKey.isEmpty() && !"key.keyboard.unknown".equals(boundKey)) {
-                    snapshot.put(binding.getTranslationKey(), boundKey);
+                    snapshot.put(binding.getName(), boundKey);
                 }
             }
         }
@@ -102,12 +106,12 @@ public class BindManagerClient implements ClientModInitializer {
         BindConfig activeProfile = configStore.getActiveProfile();
         if (activeProfile == null) return false;
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null || client.options == null) return false;
 
-        for (KeyBinding binding : client.options.allKeys) {
-            String currentKey = binding.getBoundKeyTranslationKey();
-            String storedKey = activeProfile.getBoundKey(binding.getTranslationKey());
+        for (KeyMapping binding : client.options.keyMappings) {
+            String currentKey = BindConfigStore.getBoundKeyTranslationKey(binding);
+            String storedKey = activeProfile.getBoundKey(binding.getName());
             if (currentKey == null && (storedKey == null || storedKey.isEmpty())) continue;
             if (currentKey == null) return true;
             if (storedKey == null || storedKey.isEmpty()) {
