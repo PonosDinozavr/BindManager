@@ -200,7 +200,7 @@ public class BindManagerScreen extends Screen {
             ctx.fill(listLeft, y, listLeft + 3, y + ENTRY_HEIGHT - 1, 0xFF000000 | colorStrip);
 
             int nameX = listLeft + 8;
-            int nameColor = config.isFavorite() ? 0xFFFF55 : 0xFFFFFF;
+            int nameColor = config.isFavorite() ? 0xFFFFFE55 : 0xFFFFFFFF;
             String displayName = config.getName();
             if (config.isFavorite()) {
                 displayName = ChatFormatting.YELLOW + "\u2605 " + ChatFormatting.RESET + displayName;
@@ -210,7 +210,7 @@ public class BindManagerScreen extends Screen {
             String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
             boolean isActive = config.getName().equals(activeName);
             if (isActive) {
-                ctx.text(font, Component.literal("> "), nameX - 10, y + 6, 0x55FF55);
+                ctx.text(font, Component.literal("> "), nameX - 10, y + 6, 0xFF55FF55);
                 ctx.fill(listLeft + 3, y, listLeft + 5, y + ENTRY_HEIGHT - 1, 0xFF55FF55);
             }
 
