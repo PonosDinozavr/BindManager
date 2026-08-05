@@ -42,11 +42,11 @@ public class BindManagerClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openManagerKey.consumeClick()) {
-                client.setScreen(new BindManagerScreen(client.screen));
+                client.gui.setScreen(new BindManagerScreen(client.gui.screen()));
             }
 
             // Auto-save active profile changes while in KeyBindsScreen
-            if (client.screen instanceof KeyBindsScreen) {
+            if (client.gui.screen() instanceof KeyBindsScreen) {
                 autoSaveCheckTimer++;
                 if (autoSaveCheckTimer % 10 == 0) {
                     String activeName = configStore.getActiveProfileName();
@@ -69,7 +69,7 @@ public class BindManagerClient implements ClientModInitializer {
                 accessor.invokeAddRenderableWidget(
                         Button.builder(
                                 Component.literal("+"),
-                                btn -> client.setScreen(new NameInputScreen(
+                                btn -> client.gui.setScreen(new NameInputScreen(
                                         screen,
                                         Component.translatable("screen.bindmanager.save_profile.title"),
                                         Component.translatable("screen.bindmanager.save_profile.field"),

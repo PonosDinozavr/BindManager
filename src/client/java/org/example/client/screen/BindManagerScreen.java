@@ -69,12 +69,12 @@ public class BindManagerScreen extends Screen {
         int bottomY = height - 28;
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.bindmanager.controls"),
-                btn -> minecraft.setScreen(new KeyBindsScreen(this, minecraft.options))
+                btn -> minecraft.gui.setScreen(new KeyBindsScreen(this, minecraft.options))
         ).bounds(width / 2 - 149, bottomY - 30, 70, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.bindmanager.create"),
-                btn -> minecraft.setScreen(new NameInputScreen(
+                btn -> minecraft.gui.setScreen(new NameInputScreen(
                         this,
                         Component.translatable("screen.bindmanager.create.title"),
                         Component.translatable("screen.bindmanager.create.field"),
@@ -401,7 +401,7 @@ public class BindManagerScreen extends Screen {
 
     private void renameProfile(BindConfig config) {
         String currentName = config.getName();
-        minecraft.setScreen(new NameInputScreen(
+        minecraft.gui.setScreen(new NameInputScreen(
                 this,
                 Component.translatable("screen.bindmanager.rename.title"),
                 Component.translatable("screen.bindmanager.rename.field"),
@@ -417,7 +417,7 @@ public class BindManagerScreen extends Screen {
 
     private void deleteProfile(BindConfig config) {
         String name = config.getName();
-        minecraft.setScreen(new ConfirmDeleteScreen(
+        minecraft.gui.setScreen(new ConfirmDeleteScreen(
                 this, name,
                 () -> {
                     BindManagerClient.getConfigStore().deleteProfile(name);
@@ -433,12 +433,12 @@ public class BindManagerScreen extends Screen {
     }
 
     private void openColorPicker(BindConfig config) {
-        minecraft.setScreen(new ColorPickerScreen(this, config));
+        minecraft.gui.setScreen(new ColorPickerScreen(this, config));
     }
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     // --- Color picker ---
@@ -519,7 +519,7 @@ public class BindManagerScreen extends Screen {
 
         @Override
         public void onClose() {
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
         }
     }
 }
