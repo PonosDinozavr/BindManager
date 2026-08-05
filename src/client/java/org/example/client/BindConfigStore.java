@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class BindConfigStore {
-    private static final String PROFILES_DIR = "bindmanager/profiles";
+    private static final String PROFILES_DIR = "changeofcontrol/profiles";
 
     private final Path profilesPath;
     private final Map<String, BindConfig> profiles = new LinkedHashMap<>();

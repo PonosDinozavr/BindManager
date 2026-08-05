@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class BindManagerClient implements ClientModInitializer {
     private static final KeyMapping.Category CATEGORY =
-            KeyMapping.Category.register(Identifier.fromNamespaceAndPath("bindmanager", "category"));
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath("changeofcontrol", "category"));
 
     private static KeyMapping openManagerKey;
     private static BindConfigStore configStore;
