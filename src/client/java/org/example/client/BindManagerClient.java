@@ -30,7 +30,7 @@ public class BindManagerClient implements ClientModInitializer {
         configStore = new BindConfigStore(MinecraftClient.getInstance());
 
         openManagerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.bindmanager.open_manager",
+                "key.changeofcontrol.open_manager",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_BRACKET,
                 "category.bindmanager"
@@ -67,8 +67,8 @@ public class BindManagerClient implements ClientModInitializer {
                                 Text.literal("+"),
                                 btn -> client.setScreen(new NameInputScreen(
                                         screen,
-                                        Text.translatable("screen.bindmanager.save_profile.title"),
-                                        Text.translatable("screen.bindmanager.save_profile.field"),
+                                        Text.translatable("screen.changeofcontrol.save_profile.title"),
+                                        Text.translatable("screen.changeofcontrol.save_profile.field"),
                                         name -> {
                                             if (!name.isEmpty()) {
                                                 configStore.saveProfile(name);
