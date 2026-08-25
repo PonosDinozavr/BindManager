@@ -33,7 +33,7 @@ public class BindManagerClient implements ClientModInitializer {
                 "key.changeofcontrol.open_manager",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_BRACKET,
-                "category.bindmanager"
+                "category.changeofcontrol"
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

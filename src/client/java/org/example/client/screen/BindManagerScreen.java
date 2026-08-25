@@ -466,7 +466,7 @@ public class BindManagerScreen extends Screen {
             int gap = 4;
             int totalW = cols * cellSize + (cols - 1) * gap;
             int startX = width / 2 - totalW / 2;
-            int startY = height / 2 - 35;
+            int startY = height / 2 - 75;
 
             for (int i = 0; i < PALETTE.length; i++) {
                 int row = i / cols;
@@ -491,7 +491,7 @@ public class BindManagerScreen extends Screen {
                 int gap = 4;
                 int totalW = cols * cellSize + (cols - 1) * gap;
                 int startX = width / 2 - totalW / 2;
-                int startY = height / 2 - 35;
+                int startY = height / 2 - 75;
 
                 for (int i = 0; i < PALETTE.length; i++) {
                     int row = i / cols;
