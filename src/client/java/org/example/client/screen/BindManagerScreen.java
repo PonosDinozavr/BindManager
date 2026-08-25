@@ -215,7 +215,7 @@ public class BindManagerScreen extends Screen {
             float scale = delta;
             ctx.drawText(textRenderer, Text.literal(displayName), nameX + 2, y + 6, nameColor, false);
 
-            int btnW = 38;
+            int btnW = 46;
             int gap = 3;
             int bx = listRight;
             int buttonY = y + 4;
@@ -307,7 +307,7 @@ public class BindManagerScreen extends Screen {
             int y = startY + i * ENTRY_HEIGHT;
 
             if (mouseY >= y && mouseY < y + ENTRY_HEIGHT - 1 && mouseX >= listLeft && mouseX <= listRight) {
-                int btnW = 38;
+                int btnW = 46;
                 int gap2 = 3;
                 int bx = listRight;
                 int buttonY = y + 4;
