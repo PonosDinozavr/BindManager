@@ -459,14 +459,14 @@ public class BindManagerScreen extends Screen {
         @Override
         public void render(DrawContext context, int mouseX, int mouseY, float delta) {
             super.render(context, mouseX, mouseY, delta);
-            context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 60, 0xFFFFFF);
+            context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 58, 0xFFFFFF);
 
             int cols = 5;
-            int cellSize = 24;
+            int cellSize = 20;
             int gap = 4;
             int totalW = cols * cellSize + (cols - 1) * gap;
             int startX = width / 2 - totalW / 2;
-            int startY = height / 2 - 75;
+            int startY = height / 2 - 34;
 
             for (int i = 0; i < PALETTE.length; i++) {
                 int row = i / cols;
@@ -487,11 +487,11 @@ public class BindManagerScreen extends Screen {
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (button == 0) {
                 int cols = 5;
-                int cellSize = 24;
+                int cellSize = 20;
                 int gap = 4;
                 int totalW = cols * cellSize + (cols - 1) * gap;
                 int startX = width / 2 - totalW / 2;
-                int startY = height / 2 - 75;
+                int startY = height / 2 - 34;
 
                 for (int i = 0; i < PALETTE.length; i++) {
                     int row = i / cols;
