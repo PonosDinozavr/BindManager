@@ -11,7 +11,7 @@ public class ConfirmDeleteScreen extends Screen {
     private final Runnable onConfirm;
 
     public ConfirmDeleteScreen(Screen parent, String profileName, Runnable onConfirm) {
-        super(Component.translatable("screen.bindmanager.delete.title"));
+        super(Component.translatable("screen.changeofcontrol.delete.title"));
         this.parent = parent;
         this.profileName = profileName;
         this.onConfirm = onConfirm;
@@ -22,7 +22,7 @@ public class ConfirmDeleteScreen extends Screen {
         super.init();
 
         addRenderableWidget(Button.builder(
-                Component.translatable("screen.bindmanager.delete.confirm"),
+                Component.translatable("screen.changeofcontrol.delete.confirm"),
                 btn -> {
                     onConfirm.run();
                     onClose();
@@ -41,7 +41,7 @@ public class ConfirmDeleteScreen extends Screen {
         graphics.centeredText(font, title, width / 2, height / 2 - 40, 0xFFFFFF);
         graphics.centeredText(
                 font,
-                Component.translatable("screen.bindmanager.delete.warning", profileName),
+                Component.translatable("screen.changeofcontrol.delete.warning", profileName),
                 width / 2,
                 height / 2 - 20,
                 0xFF5555
