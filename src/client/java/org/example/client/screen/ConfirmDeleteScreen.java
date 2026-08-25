@@ -11,7 +11,7 @@ public class ConfirmDeleteScreen extends Screen {
     private final Runnable onConfirm;
 
     public ConfirmDeleteScreen(Screen parent, String profileName, Runnable onConfirm) {
-        super(Text.translatable("screen.bindmanager.delete.title"));
+        super(Text.translatable("screen.changeofcontrol.delete.title"));
         this.parent = parent;
         this.profileName = profileName;
         this.onConfirm = onConfirm;
@@ -22,7 +22,7 @@ public class ConfirmDeleteScreen extends Screen {
         super.init();
 
         addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.delete.confirm"),
+                Text.translatable("screen.changeofcontrol.delete.confirm"),
                 btn -> {
                     onConfirm.run();
                     close();
@@ -41,7 +41,7 @@ public class ConfirmDeleteScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 40, 0xFFFFFF);
         context.drawCenteredTextWithShadow(
                 textRenderer,
-                Text.translatable("screen.bindmanager.delete.warning", profileName),
+                Text.translatable("screen.changeofcontrol.delete.warning", profileName),
                 width / 2,
                 height / 2 - 20,
                 0xFF5555

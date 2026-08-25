@@ -1,7 +1,5 @@
 package org.example.client;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
@@ -14,11 +12,11 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class BindConfigStore {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String PROFILES_DIR = "bindmanager/profiles";
+    private static final String PROFILES_DIR = "changeofcontrol/profiles";
 
     private final Path profilesPath;
     private final Map<String, BindConfig> profiles = new LinkedHashMap<>();
+    private String activeProfileName;
 
     public BindConfigStore(MinecraftClient client) {
         this.profilesPath = client.runDirectory.toPath().resolve("config").resolve(PROFILES_DIR);
@@ -36,6 +34,7 @@ public class BindConfigStore {
             if (Files.exists(profilesPath)) {
                 try (var stream = Files.list(profilesPath)) {
                     stream.filter(p -> p.toString().endsWith(".json"))
+                            .sorted(Comparator.comparing(p -> p.getFileName().toString()))
                             .forEach(this::loadProfile);
                 }
             }
@@ -63,17 +62,43 @@ public class BindConfigStore {
     }
 
     public void saveProfile(String name) {
+        saveProfile(name, null, false, BindConfig.DEFAULT_COLOR);
+    }
+
+    public void saveProfile(String name, Boolean favorite, int color) {
+        saveProfile(name, null, favorite != null && favorite, color);
+    }
+
+    public void saveProfile(String name, Map<String, String> existingBindings, boolean favorite, int color) {
         BindConfig config = new BindConfig(name);
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client != null && client.options != null) {
-            for (KeyBinding binding : client.options.allKeys) {
-                InputUtil.Key boundKey = binding.getBoundKey();
-                if (boundKey != null) {
-                    config.setKeyBinding(binding.getTranslationKey(), boundKey.getTranslationKey());
+        if (existingBindings != null) {
+            config.getKeyBindings().putAll(existingBindings);
+        } else {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client != null && client.options != null) {
+                for (KeyBinding binding : client.options.allKeys) {
+                    String boundKey = binding.getBoundKeyTranslationKey();
+                    if (boundKey != null && !boundKey.isEmpty() && !"key.keyboard.unknown".equals(boundKey)) {
+                        config.setKeyBinding(binding.getTranslationKey(), boundKey);
+                    }
                 }
             }
         }
-        profiles.put(name, config);
+        config.setFavorite(favorite);
+        config.setColor(color);
+        while (profiles.containsKey(config.getName())) {
+            int counter = 1;
+            while (profiles.containsKey(name + " (" + counter + ")")) {
+                counter++;
+            }
+            config.setName(name + " (" + counter + ")");
+        }
+        profiles.put(config.getName(), config);
+        saveProfileToFile(config);
+    }
+
+    public void saveExistingProfile(BindConfig config) {
+        profiles.put(config.getName(), config);
         saveProfileToFile(config);
     }
 
@@ -109,6 +134,29 @@ public class BindConfigStore {
         }
     }
 
+    public void moveProfile(int fromIndex, int toIndex) {
+        List<BindConfig> list = new ArrayList<>(profiles.values());
+        if (fromIndex < 0 || fromIndex >= list.size() || toIndex < 0 || toIndex >= list.size()) return;
+        BindConfig moved = list.remove(fromIndex);
+        list.add(toIndex, moved);
+        profiles.clear();
+        for (BindConfig c : list) {
+            profiles.put(c.getName(), c);
+        }
+    }
+
+    public String getActiveProfileName() {
+        return activeProfileName;
+    }
+
+    public BindConfig getActiveProfile() {
+        return activeProfileName != null ? profiles.get(activeProfileName) : null;
+    }
+
+    public void setActiveProfile(String name) {
+        this.activeProfileName = name;
+    }
+
     public void loadProfile(String name) {
         BindConfig config = profiles.get(name);
         if (config == null) return;
@@ -124,8 +172,8 @@ public class BindConfigStore {
                 binding.setBoundKey(key);
             }
         }
-        KeyBinding.updateKeysByCode();
         options.write();
+        activeProfileName = name;
     }
 
     public List<BindConfig> getProfiles() {
