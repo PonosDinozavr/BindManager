@@ -458,20 +458,20 @@ public class BindManagerScreen extends Screen {
             addRenderableWidget(Button.builder(
                     Component.translatable("gui.cancel"),
                     btn -> onClose()
-            ).bounds(width / 2 - 100, height / 2 + 50, 200, 20).build());
+            ).bounds(width / 2 - 100, height / 2 + 64, 200, 20).build());
         }
 
         @Override
         public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
             super.extractRenderState(graphics, mouseX, mouseY, delta);
-            graphics.centeredText(font, title, width / 2, height / 2 - 60, 0xFFFFFFFF);
+            graphics.centeredText(font, title, width / 2, height / 2 - 58, 0xFFFFFFFF);
 
             int cols = 5;
-            int cellSize = 24;
+            int cellSize = 20;
             int gap = 4;
             int totalW = cols * cellSize + (cols - 1) * gap;
             int startX = width / 2 - totalW / 2;
-            int startY = height / 2 - 75;
+            int startY = height / 2 - 34;
 
             for (int i = 0; i < PALETTE.length; i++) {
                 int row = i / cols;
@@ -494,11 +494,11 @@ public class BindManagerScreen extends Screen {
                 double mouseX = event.x();
                 double mouseY = event.y();
                 int cols = 5;
-                int cellSize = 24;
+                int cellSize = 20;
                 int gap = 4;
                 int totalW = cols * cellSize + (cols - 1) * gap;
                 int startX = width / 2 - totalW / 2;
-                int startY = height / 2 - 75;
+                int startY = height / 2 - 34;
 
                 for (int i = 0; i < PALETTE.length; i++) {
                     int row = i / cols;
