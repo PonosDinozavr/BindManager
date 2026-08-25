@@ -18,7 +18,6 @@ import java.util.List;
 
 public class BindManagerScreen extends Screen {
     private static final int[] PALETTE = {
-            0x555555, 0xFF5555, 0xFF9900, 0xFFFF55, 0x55FF55,
             0x55FFFF, 0x5555FF, 0xFF55FF, 0xFFFFFF, 0xAAAAAA,
             0xCC3333, 0xCC7700, 0xCCCC00, 0x33CC33, 0x33CCCC,
             0x3333CC, 0xCC33CC, 0xDDDDDD, 0x774400, 0xFF77FF
@@ -458,20 +457,20 @@ public class BindManagerScreen extends Screen {
             addRenderableWidget(Button.builder(
                     Component.translatable("gui.cancel"),
                     btn -> onClose()
-            ).bounds(width / 2 - 100, height / 2 + 64, 200, 20).build());
+            ).bounds(width / 2 - 100, height / 2 + 55, 200, 20).build());
         }
 
         @Override
         public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
             super.extractRenderState(graphics, mouseX, mouseY, delta);
-            graphics.centeredText(font, title, width / 2, height / 2 - 58, 0xFFFFFF);
+            graphics.centeredText(font, title, width / 2, height / 2 - 55, 0xFFFFFF);
 
             int cols = 5;
-            int cellSize = 20;
+            int cellSize = 22;
             int gap = 4;
             int totalW = cols * cellSize + (cols - 1) * gap;
             int startX = width / 2 - totalW / 2;
-            int startY = height / 2 - 34;
+            int startY = height / 2 - 35;
 
             for (int i = 0; i < PALETTE.length; i++) {
                 int row = i / cols;
@@ -494,11 +493,11 @@ public class BindManagerScreen extends Screen {
                 double mouseX = event.x();
                 double mouseY = event.y();
                 int cols = 5;
-                int cellSize = 20;
+                int cellSize = 22;
                 int gap = 4;
                 int totalW = cols * cellSize + (cols - 1) * gap;
                 int startX = width / 2 - totalW / 2;
-                int startY = height / 2 - 34;
+                int startY = height / 2 - 35;
 
                 for (int i = 0; i < PALETTE.length; i++) {
                     int row = i / cols;
