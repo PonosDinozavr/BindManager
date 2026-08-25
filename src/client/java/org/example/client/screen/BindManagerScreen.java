@@ -23,8 +23,8 @@ public class BindManagerScreen extends Screen {
             0x3333CC, 0xCC33CC, 0xDDDDDD, 0x774400, 0xFF77FF
     };
     private static final String[] SORT_KEYS = {
-            "screen.bindmanager.sort.0", "screen.bindmanager.sort.1",
-            "screen.bindmanager.sort.2", "screen.bindmanager.sort.3"
+            "screen.changeofcontrol.sort.0", "screen.changeofcontrol.sort.1",
+            "screen.changeofcontrol.sort.2", "screen.changeofcontrol.sort.3"
     };
     private static final int[] SORT_COLORS = {
             0xAAAAAA, 0x55FF55, 0xFFFF55, 0x55FFFF
@@ -55,7 +55,7 @@ public class BindManagerScreen extends Screen {
     }
 
     public BindManagerScreen(Screen parent) {
-        super(Text.translatable("screen.bindmanager.title"));
+        super(Text.translatable("screen.changeofcontrol.title"));
         this.parent = parent;
     }
 
@@ -67,16 +67,16 @@ public class BindManagerScreen extends Screen {
 
         int bottomY = height - 28;
         addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.controls"),
+                Text.translatable("screen.changeofcontrol.controls"),
                 btn -> client.setScreen(new KeybindsScreen(this, client.options))
         ).dimensions(width / 2 - 149, bottomY - 30, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.create"),
+                Text.translatable("screen.changeofcontrol.create"),
                 btn -> client.setScreen(new NameInputScreen(
                         this,
-                        Text.translatable("screen.bindmanager.create.title"),
-                        Text.translatable("screen.bindmanager.create.field"),
+                        Text.translatable("screen.changeofcontrol.create.title"),
+                        Text.translatable("screen.changeofcontrol.create.field"),
                         name -> {
                             if (!name.isEmpty()) {
                                 BindManagerClient.getConfigStore().saveProfile(name);
@@ -88,7 +88,7 @@ public class BindManagerScreen extends Screen {
         ).dimensions(width / 2 - 73, bottomY - 30, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
-                Text.translatable("screen.bindmanager.filter_fav"),
+                Text.translatable("screen.changeofcontrol.filter_fav"),
                 btn -> {
                     showFavoritesOnly = !showFavoritesOnly;
                     refreshProfiles();
@@ -136,7 +136,7 @@ public class BindManagerScreen extends Screen {
 
         String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
         if (activeName != null) {
-            Text activeText = Text.translatable("screen.bindmanager.active_profile", activeName);
+            Text activeText = Text.translatable("screen.changeofcontrol.active_profile", activeName);
             ctx.drawText(textRenderer, activeText, 8, 6, 0x55FF55, false);
         }
 
@@ -231,14 +231,14 @@ public class BindManagerScreen extends Screen {
             int favColor = config.isFavorite() ? 0xFFFF55 : 0xAAAAAA;
 
             drawHoverBtnLiteral(ctx, favX, buttonY, btnW, star, favColor, mouseX, mouseY);
-            drawHoverBtn(ctx, loadX, buttonY, btnW, "screen.bindmanager.load", 0x55FF55, mouseX, mouseY);
-            drawHoverBtn(ctx, renX, buttonY, btnW, "screen.bindmanager.rename", 0xFFFF55, mouseX, mouseY);
-            drawHoverBtn(ctx, delX, buttonY, btnW, "screen.bindmanager.delete", 0xFF5555, mouseX, mouseY);
-            drawHoverBtn(ctx, colX, buttonY, btnW, "screen.bindmanager.color", 0x55FFFF, mouseX, mouseY);
+            drawHoverBtn(ctx, loadX, buttonY, btnW, "screen.changeofcontrol.load", 0x55FF55, mouseX, mouseY);
+            drawHoverBtn(ctx, renX, buttonY, btnW, "screen.changeofcontrol.rename", 0xFFFF55, mouseX, mouseY);
+            drawHoverBtn(ctx, delX, buttonY, btnW, "screen.changeofcontrol.delete", 0xFF5555, mouseX, mouseY);
+            drawHoverBtn(ctx, colX, buttonY, btnW, "screen.changeofcontrol.color", 0x55FFFF, mouseX, mouseY);
         }
 
         if (profiles.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.bindmanager.empty"), width / 2, getListTop() + 40, 0x888888);
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("screen.changeofcontrol.empty"), width / 2, getListTop() + 40, 0x888888);
         }
 
         // Draw entry drag ghost
@@ -398,8 +398,8 @@ public class BindManagerScreen extends Screen {
         String currentName = config.getName();
         client.setScreen(new NameInputScreen(
                 this,
-                Text.translatable("screen.bindmanager.rename.title"),
-                Text.translatable("screen.bindmanager.rename.field"),
+                Text.translatable("screen.changeofcontrol.rename.title"),
+                Text.translatable("screen.changeofcontrol.rename.field"),
                 newName -> {
                     if (!newName.isEmpty() && !newName.equals(currentName)) {
                         BindManagerClient.getConfigStore().renameProfile(currentName, newName);
@@ -442,7 +442,7 @@ public class BindManagerScreen extends Screen {
         private final BindConfig config;
 
         public ColorPickerScreen(Screen parent, BindConfig config) {
-            super(Text.translatable("screen.bindmanager.color_picker"));
+            super(Text.translatable("screen.changeofcontrol.color_picker"));
             this.parent = parent;
             this.config = config;
         }
