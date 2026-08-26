@@ -46,7 +46,7 @@ public class BindManagerScreen extends Screen {
     private int dragVisualY;
 
     private static final int ENTRY_HEIGHT = 28;
-    private static final int HEADER_H = 22;
+    private static final int HEADER_H = 16;
     private static final int SORT_PANEL_H = 24;
     private static final int FOOTER_HEIGHT = 60;
 
@@ -132,12 +132,12 @@ public class BindManagerScreen extends Screen {
     }
 
     private void renderHeader(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
-        ctx.centeredText(font, title, width / 2, 12, 0xFFFFFFFF);
+        ctx.centeredText(font, title, width / 2, 6, 0xFFFFFFFF);
 
         String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
         if (activeName != null) {
             Component activeText = Component.translatable("screen.changeofcontrol.active_profile", activeName);
-            ctx.text(font, activeText, 8, 12, 0xFF55FF55);
+            ctx.text(font, activeText, 8, 6, 0xFF55FF55);
         }
 
         // Sort panel (always shown)
