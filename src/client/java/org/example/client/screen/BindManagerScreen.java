@@ -46,7 +46,7 @@ public class BindManagerScreen extends Screen {
     private int dragVisualY;
 
     private static final int ENTRY_HEIGHT = 28;
-    private static final int HEADER_H = 22;
+    private static final int HEADER_H = 16;
     private static final int SORT_PANEL_H = 24;
     private static final int FOOTER_HEIGHT = 60;
 
@@ -132,12 +132,12 @@ public class BindManagerScreen extends Screen {
     }
 
     private void renderHeader(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {
-        ctx.centeredText(font, title, width / 2, 12, 0xFFFFFF);
+        ctx.centeredText(font, title, width / 2, 6, 0xFFFFFFFF);
 
         String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
         if (activeName != null) {
             Component activeText = Component.translatable("screen.changeofcontrol.active_profile", activeName);
-            ctx.text(font, activeText, 8, 12, 0x55FF55);
+            ctx.text(font, activeText, 8, 6, 0xFF55FF55);
         }
 
         // Sort panel (always shown)
@@ -156,7 +156,7 @@ public class BindManagerScreen extends Screen {
             ctx.fill(bx, panelY, bx + sBtnW, panelY + btnH, bg);
             if (sel) ctx.fill(bx, panelY, bx + 2, panelY + btnH, 0xFFFFFFFF);
             Component label = Component.translatable(SORT_KEYS[i]);
-            ctx.centeredText(font, label, bx + sBtnW / 2, panelY + 5, 0xFFFFFF);
+            ctx.centeredText(font, label, bx + sBtnW / 2, panelY + 5, 0xFFFFFFFF);
         }
     }
 
@@ -199,7 +199,7 @@ public class BindManagerScreen extends Screen {
             ctx.fill(listLeft, y, listLeft + 3, y + ENTRY_HEIGHT - 1, 0xFF000000 | colorStrip);
 
             int nameX = listLeft + 8;
-            int nameColor = config.isFavorite() ? 0xFFFF55 : 0xFFFFFF;
+            int nameColor = config.isFavorite() ? 0xFFFFFE55 : 0xFFFFFFFF;
             String displayName = config.getName();
             if (config.isFavorite()) {
                 displayName = ChatFormatting.YELLOW + "\u2605 " + ChatFormatting.RESET + displayName;
@@ -209,7 +209,7 @@ public class BindManagerScreen extends Screen {
             String activeName = BindManagerClient.getConfigStore().getActiveProfileName();
             boolean isActive = config.getName().equals(activeName);
             if (isActive) {
-                ctx.text(font, Component.literal("> "), nameX - 10, y + 6, 0x55FF55);
+                ctx.text(font, Component.literal("> "), nameX - 10, y + 6, 0xFF55FF55);
                 ctx.fill(listLeft + 3, y, listLeft + 5, y + ENTRY_HEIGHT - 1, 0xFF55FF55);
             }
 
@@ -238,7 +238,7 @@ public class BindManagerScreen extends Screen {
         }
 
         if (profiles.isEmpty()) {
-            ctx.centeredText(font, Component.translatable("screen.changeofcontrol.empty"), width / 2, getListTop() + 40, 0x888888);
+            ctx.centeredText(font, Component.translatable("screen.changeofcontrol.empty"), width / 2, getListTop() + 40, 0xFF888888);
         }
 
         // Draw entry drag ghost
@@ -247,13 +247,13 @@ public class BindManagerScreen extends Screen {
             int ghostY = dragVisualY;
             ctx.fill(listLeft, ghostY, listRight, ghostY + ENTRY_HEIGHT - 1, 0x66AAFF88);
             ctx.fill(listLeft, ghostY, listLeft + 3, ghostY + ENTRY_HEIGHT - 1, 0xFF55FF55);
-            ctx.text(font, Component.literal("\u2261 " + ghostConfig.getName()), listLeft + 8, ghostY + 6, 0xFFFFFF);
+            ctx.text(font, Component.literal("\u2261 " + ghostConfig.getName()), listLeft + 8, ghostY + 6, 0xFFFFFFFF);
         }
 
         // Scroll indicator
         if (profiles.size() > maxVisible) {
             String scrollText = (scrollOffset + 1) + "-" + Math.min(scrollOffset + maxVisible, profiles.size()) + "/" + profiles.size();
-            ctx.text(font, Component.literal(scrollText), width / 2 - font.width(scrollText) / 2, height - 30, 0x888888);
+            ctx.text(font, Component.literal(scrollText), width / 2 - font.width(scrollText) / 2, height - 30, 0xFF888888);
         }
     }
 
@@ -262,7 +262,7 @@ public class BindManagerScreen extends Screen {
         int bg = hovered ? (0x88 << 24) : 0x22FFFFFF;
         ctx.fill(x - 1, y - 1, x + w + 1, y + 13, bg);
         if (hovered) ctx.fill(x - 1, y - 1, x + w + 1, y, 0xFF000000 | color);
-        ctx.text(font, Component.translatable(langKey), x + 2, y + 2, hovered ? 0xFFFFFF : color);
+        ctx.text(font, Component.translatable(langKey), x + 2, y + 2, hovered ? 0xFFFFFFFF : (0xFF000000 | color));
     }
 
     private void drawHoverBtnLiteral(GuiGraphicsExtractor ctx, int x, int y, int w, String literal, int color, int mx, int my) {
@@ -270,7 +270,7 @@ public class BindManagerScreen extends Screen {
         int bg = hovered ? (0x88 << 24) : 0x22FFFFFF;
         ctx.fill(x - 1, y - 1, x + w + 1, y + 13, bg);
         if (hovered) ctx.fill(x - 1, y - 1, x + w + 1, y, 0xFF000000 | color);
-        ctx.text(font, Component.literal(literal), x + 2, y + 2, hovered ? 0xFFFFFF : color);
+        ctx.text(font, Component.literal(literal), x + 2, y + 2, hovered ? 0xFFFFFFFF : (0xFF000000 | color));
     }
 
     @Override
@@ -463,7 +463,7 @@ public class BindManagerScreen extends Screen {
         @Override
         public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
             super.extractRenderState(graphics, mouseX, mouseY, delta);
-            graphics.centeredText(font, title, width / 2, height / 2 - 55, 0xFFFFFF);
+            graphics.centeredText(font, title, width / 2, height / 2 - 55, 0xFFFFFFFF);
 
             int cols = 5;
             int cellSize = 22;
@@ -481,7 +481,7 @@ public class BindManagerScreen extends Screen {
                 boolean selected = config.getColor() == PALETTE[i];
                 boolean hovered = mouseX >= x && mouseX < x + cellSize && mouseY >= y && mouseY < y + cellSize;
 
-                int borderColor = selected ? 0xFFFFFF : (hovered ? 0xAAAAAA : 0x555555);
+                int borderColor = selected ? 0xFFFFFFFF : (hovered ? 0xFFAAAAAA : 0xFF555555);
                 graphics.fill(x - 1, y - 1, x + cellSize + 1, y + cellSize + 1, 0xFF000000 | borderColor);
                 graphics.fill(x, y, x + cellSize, y + cellSize, 0xFF000000 | PALETTE[i]);
             }
